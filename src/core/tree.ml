@@ -339,9 +339,8 @@ module CM = struct
   let get_col : int -> t -> term list = fun ind m ->
     List.map (fun {c_lhs ; _} -> c_lhs.(ind)) m.clauses
 
-  (** [score ts] returns the score heuristic for column [ts].
-      This score is the number of tree constructors divided
-      by the number of conditions. *)
+  (** [score ts] returns the score heuristic for column [ts]. This score is
+      the number of tree constructors divided by the number of conditions. *)
   let score : term list -> float = fun ts ->
     let rec loop ((ncons, nst) as acc) = function
       | []                             -> acc
@@ -353,9 +352,9 @@ module CM = struct
     let nc, ns = loop (0, 0) ts in
     float_of_int nc /. (float_of_int ns)
 
-  (** [pick_best_among mat columns] returns the index of the best
-      column of matrix [mat] among columns [columns].
-      Here, we mean "best" in the sense of {!val:score}. *)
+  (** [pick_best_among mat columns] returns the index of the best column of
+      matrix [mat] among columns [columns]. Here, we mean "best" in the sense
+      of {!val:score}. *)
   let pick_best_among : t -> int array -> int = fun mat columns->
     let scores = Array.map (fun ci -> score (get_col ci mat)) columns in
     Array.max_index ~cmp:(Stdlib.compare) scores

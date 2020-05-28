@@ -43,8 +43,8 @@ exception Unsolvable
     this is necessary. Note that the produced environment is equivalent to the
     environment [fst (destruct_prod (Array,length xs) t)] if the variables
     of its domain are substituted by those of [xs]. Intuitively,  if [t] is of
-    the form [∀ (y1:a1) ... (yn:an), a]  then the environment returned by the
-    function is (roughly) [(xn, an{y1≔x1, ..., yn-1≔xn-1}) ; ... ; (x1, a1)].
+    the form [∀ (y1:a1) ⋯ (yn:an), a]  then the environment returned by the
+    function is (roughly) [(xn, an{y1≔x1,⋯, yn-1≔xn-1}) ;⋯; (x1, a1)].
     Note that the function raises [Invalid_argument] if [t] does not evaluate
     to a sequence of [Array.length xs] dependent products. *)
 let copy_prod_env : tvar array -> term -> env = fun xs t ->
@@ -263,16 +263,16 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
   in
 
   (* For a problem of the form Appl(m[ts],[Vari x;_])=_, where m is a
-     metavariable of arity n and type Πx1:a1,..,Πxn:an,t and x does not occur
-     in m[ts], instantiate m by λx1:a1,..,λxn:an,λx:a,m1[x1,..,xn,x] where
+     metavariable of arity n and type Πx1:a1,⋯,Πxn:an,t and x does not occur
+     in m[ts], instantiate m by λx1:a1,⋯,λxn:an,λx:a,m1[x1,⋯,xn,x] where
      m1 is a new metavariable of arity n+1 and:
 
-     - either t = Πx:a,b and m1 is of type Πx1:a1,..,Πxn:an,Πx:a,b,
+     - either t = Πx:a,b and m1 is of type Πx1:a1,⋯,Πxn:an,Πx:a,b,
 
-     - or we add the problem t = Πx:m2[x1,..,xn],m3[x1,..,xn,x] where m2 is a
-     new metavariable of arity n and type Πx1:a1,..,Πxn:an,KIND and m3 is a
+     - or we add the problem t = Πx:m2[x1,⋯,xn],m3[x1,⋯,xn,x] where m2 is a
+     new metavariable of arity n and type Πx1:a1,⋯,Πxn:an,KIND and m3 is a
      new metavariable of arity n+1 and type
-     Πx1:a1,..,Πxn:an,Πx:m2[x1,..,xn],KIND, and do as in the previous case. *)
+     Πx1:a1,⋯,Πxn:an,Πx:m2[x1,⋯,xn],KIND, and do as in the previous case. *)
   let imitate_lam m =
     let n = m.meta_arity in
     let (env, t) = Infer.destruct_prod n !(m.meta_type) in
