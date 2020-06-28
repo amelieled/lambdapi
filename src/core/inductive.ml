@@ -24,7 +24,13 @@ let get_config : Sig_state.t -> Pos.popt -> config = fun ss pos ->
   ; symb_prf  = builtin "P" }
 
 
-
+type 'a lambda_term =
+  | L_Type
+  | L_Symb of 'a * 'a lambda_term
+  | L_Var  of 'a * 'a lambda_term
+  (*| L_Abst of 'a * 'a lambda_term * 'a lambda_term*)
+  | L_Appl of 'a lambda_term * 'a lambda_term
+  | L_Prod of 'a * 'a lambda_term * 'a lambda_term
 
 
 
