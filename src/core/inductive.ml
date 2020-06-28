@@ -23,6 +23,136 @@ let get_config : Sig_state.t -> Pos.popt -> config = fun ss pos ->
   { symb_Prop = builtin "Prop"
   ; symb_prf  = builtin "P" }
 
+
+
+type 'a lambda_term =
+  | L_Type
+  | L_Symb of 'a * 'a lambda_term
+  | L_Var  of 'a * 'a lambda_term
+  (*| L_Abst of 'a * 'a lambda_term * 'a lambda_term*)
+  | L_Appl of 'a lambda_term * 'a lambda_term
+  | L_Prod of 'a * 'a lambda_term * 'a lambda_term
+
+
+let rec term_to_lambda_term : term -> 'a lambda_term = fun t ->
+  match unfold t with
+  | Type   -> L_Type
+  | Symb(s) ->
+      let t = term_to_lambda_term !(s.sym_type) in
+      L_Symb(s.sym_name, t)
+  | Vari x -> L_Var (Bindlib.name_of x, L_Type)
+  (*| Abst(type_x, t) ->
+      let (x, t) = Bindlib.unbind t           in
+      let type_x = term_to_lambda_term type_x in
+      let t      = term_to_lambda_term t      in
+      L_Abst(Bindlib.name_of x, type_x, t) *)
+  | Appl (t1, t2) ->
+      let t1 = term_to_lambda_term t1 in
+      let t2 = term_to_lambda_term t2 in
+      L_Appl (t1, t2)
+  | Prod(a,b) ->
+      let (x, b) = Bindlib.unbind b in
+      let a = term_to_lambda_term a in
+      let b = term_to_lambda_term b in
+      L_Prod (Bindlib.name_of x, a, b)
+
+(*  | Kind   -> fatal pos "Error due to 'Kind' in %a." pp_symbol scons
+  | Meta _ -> fatal pos "Error due to 'Meta' in %a." pp_symbol scons
+  | Patt _ -> fatal pos "Error due to 'Patt' in %a." pp_symbol scons
+  | TEnv _ -> fatal pos "Error due to 'TEnv' in %a." pp_symbol scons
+  | TRef _ -> fatal pos "Error due to 'TRef' in %a." pp_symbol scons
+  | LLet _ -> fatal pos "Error due to 'LLet' in %a." pp_symbol scons *)
+
+  | Abst _ ->
+      fatal None "Error due to 'Abst' in the term. Not yet implemented..."
+  | LLet _ ->
+      fatal None "Error due to 'LLet' in the term. Not yet implemented..."
+
+  | Kind   ->
+      fatal None "Error due to 'Kind' in the term. Only for internal thing."
+  | Meta _ ->
+      fatal None "Error due to 'Meta' in the term.
+                  Only for unification and for proof goals."
+  | Patt _ ->
+      fatal None "Error due to 'Patt' in the term. Only for rewriting rules."
+  | TEnv _ ->
+      fatal None "Error due to 'TEnv' in the term. Only for rewriting rules."
+  | Wild   ->
+      fatal None "Error due to 'Wild' in the term. Only for pattern matching."
+  | TRef _ ->
+      fatal None "Error due to 'TRef' in the term. Only for pattern matching."
+
+
+let rec pp_lambda_term l = match l with
+  | L_Type -> ""
+  | L_Symb(name, _) -> name
+  | L_Var(name, _)  -> "Var " ^ name
+  (*| L_Abst(name,typ, t) ->
+      let typ = pp_lambda_term typ in
+      let t   = pp_lambda_term t   in
+      "(\\abs"^name^" : "^typ^", "^t^")" *)
+  | L_Appl(t1, t2) ->
+      let t1 = pp_lambda_term t1 in
+      let t2 = pp_lambda_term t2 in
+      t1 ^ " (" ^ t2 ^ ") "
+  | L_Prod(name,typ, t) ->
+      let typ = pp_lambda_term typ in
+      let t   = pp_lambda_term t   in
+      "(\\"^name^" : "^typ^", "^t^")"
+
+let rec print_lambda_term l = match l with
+  | L_Type -> "TYPE"
+  | L_Symb(name, typ) -> "(" ^ name ^ " : " ^ (print_lambda_term typ) ^ ")"
+  | L_Var(name, typ)  -> " (" ^ name ^ " :: " ^ (print_lambda_term typ) ^ ")"
+  (* | L_Abst(name,typ, t) ->
+      let typ = print_lambda_term typ in
+      let t   = print_lambda_term t   in
+      "\\abs"^name^" : "^typ^", "^t *)
+  | L_Appl(t1, t2) ->
+      let t1 = print_lambda_term t1 in
+      let t2 = print_lambda_term t2 in
+      t1 ^ " (" ^ t2 ^ ") "
+  | L_Prod(name,typ, t) ->
+      let typ = print_lambda_term typ in
+      let t   = print_lambda_term t   in
+      "\\"^name^" : "^typ^", "^t
+
+(** [instanceOf t l] creates an instance of [t] with the arguments of the
+    list [l]. *)
+let instanceOf = fun t l -> List.fold_left (fun a b -> L_Appl(a,b)) t l
+
+(** [isInstanceOf x t] tests if [x] is an instance of [t], i.e. the first
+    symbol of [x] is [t]. *)
+let isInstanceOf : 'a lambda_term -> 'a -> bool = fun x t ->
+  match x with
+  | L_Type -> false
+  | L_Symb(name, _) -> name = t
+  | L_Var (name, _) -> name = t
+  | L_Appl(t1, _)   ->
+      begin
+        match t1 with
+        | L_Symb(name, _) -> name = t
+        | L_Var (name, _) -> name = t
+        | _               -> false
+      end
+  | L_Prod _        -> false
+
+let instance = fun x ->
+  match x with
+  | L_Type -> None
+  | L_Symb(name, _) -> Some name
+  | L_Var (name, _) -> Some name
+  | L_Appl(t1,   _) ->
+      begin
+        match t1 with
+        | L_Symb(name, _) -> Some name
+        | L_Var (name, _) -> Some name
+        | _               -> None
+      end
+  | L_Prod _        -> None
+
+
+
 (** [principle ss pos sind scons_list] returns an induction principle which
     is created thanks to the symbol of the inductive type [sind] (and its
     position [pos]), its constructors [scons_list] and the signature [ss]. *)
@@ -37,6 +167,11 @@ let principle : Sig_state.t -> popt -> sym -> sym list -> term =
 
   (* [case_of scons] creates a clause according to a constructor [scons]. *)
   let case_of : sym -> tbox = fun scons ->
+    let res = unfold !(scons.sym_type) in
+    if !log_enabled then log_ind "The term is %a" Print.pp_term res;
+    let conv = pp_lambda_term (term_to_lambda_term res) in
+    if !log_enabled then log_ind "The lambda term is %s" conv;
+
     let rec case : tbox list -> term-> tbox = fun xs a ->
       match unfold a with
       | Symb(s) ->
@@ -60,12 +195,33 @@ let principle : Sig_state.t -> popt -> sym -> sym list -> term =
                   else b
                 in
               _Prod (Bindlib.box a) (Bindlib.bind_var x b)
-            | _ -> fatal pos "The type of %a is not supported"
+            | _ -> fatal pos "Prod. The type of %a is not supported"
                      pp_symbol scons
           end
-      | _ ->
-          fatal pos "The type of %a is not supported"
+      | Vari _ ->
+          fatal pos "Var. The type of %a is not supported"
             pp_symbol scons
+      | Abst _ ->
+          fatal pos "Abst. The type of %a is not supported"
+            pp_symbol scons
+      | Appl (t1, _) ->
+          begin
+          match unfold t1 with
+          | Symb s ->
+              if s == sind then prf_of_p (app (_Symb scons) (List.rev xs))
+              else fatal pos "%a is not a constructor of %a"
+                     pp_symbol scons pp_symbol sind
+          | _ -> fatal pos "Appl. The type of %a is not supported"
+                   pp_symbol scons
+          end
+      | Type   -> fatal pos "Error due to 'Type' in %a." pp_symbol scons
+      | Kind   -> fatal pos "Error due to 'Kind' in %a." pp_symbol scons
+      | Wild   -> fatal pos "Error due to 'Wild' in %a." pp_symbol scons
+      | Meta _ -> fatal pos "Error due to 'Meta' in %a." pp_symbol scons
+      | Patt _ -> fatal pos "Error due to 'Patt' in %a." pp_symbol scons
+      | TEnv _ -> fatal pos "Error due to 'TEnv' in %a." pp_symbol scons
+      | TRef _ -> fatal pos "Error due to 'TRef' in %a." pp_symbol scons
+      | LLet _ -> fatal pos "Error due to 'LLet' in %a." pp_symbol scons
     in
     case [] !(scons.sym_type)
   in
