@@ -30,7 +30,7 @@ set builtin "eqind" ≔ eq_ind
 /////////////////////////////
 // Some examples of inductive types
 /////////////////////////////
-set debug +l
+set debug +g
 constant symbol nat : Set // Natural number
 inductive Nat : TYPE ≔
  | z    : Nat
@@ -74,6 +74,10 @@ assert nil : List // Examples
 assert cons (succ (succ (succ z))) nil : List
 assert cons (succ (succ (succ z))) (cons (succ z) nil) : List
 assert cons (succ (succ (succ z))) (cons (succ z) (cons z nil)) : List
+
+inductive L : Πa:Set, TYPE ≔
+| nilL  : Πa, L a
+
 
 /////////////////////////////
 // Some proofs

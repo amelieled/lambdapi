@@ -173,55 +173,64 @@ let principle : Sig_state.t -> popt -> sym -> sym list -> term =
     if !log_enabled then log_ind "The lambda term is %s" conv;
 
     let rec case : tbox list -> term-> tbox = fun xs a ->
-      match unfold a with
-      | Symb(s) ->
-         if s == sind then prf_of_p (app (_Symb scons) (List.rev xs))
-         else fatal pos "%a is not a constructor of %a"
-                pp_symbol scons pp_symbol sind
-      | Prod(a,b) ->
-          let (x,b) =
-            if Bindlib.binder_occur b then
-              Bindlib.unbind b
-            else
-              let x = Bindlib.new_var mkfree "x" in
-              (x, Bindlib.subst b (Vari x))
-          in
-          let b = case ((Bindlib.box_var x)::xs) b in
-          begin
-            match unfold a with
-            | Symb(s) ->
-                let b =
-                  if s == sind then _Impl (prf_of_p (Bindlib.box_var x)) b
-                  else b
-                in
-              _Prod (Bindlib.box a) (Bindlib.bind_var x b)
-            | _ -> fatal pos "Prod. The type of %a is not supported"
-                     pp_symbol scons
-          end
-      | Vari _ ->
-          fatal pos "Var. The type of %a is not supported"
-            pp_symbol scons
-      | Abst _ ->
-          fatal pos "Abst. The type of %a is not supported"
-            pp_symbol scons
-      | Appl (t1, _) ->
-          begin
-          match unfold t1 with
-          | Symb s ->
+      match Basics.get_args a with
+      | (Symb(s), l) ->
+          let list = List.map lift l in
+          if s == sind then prf_of_p (app (_Symb s) list)
+          else fatal pos "%a is not a constructor of %a"
+                 pp_symbol scons pp_symbol sind
+      (*| _, _         ->
+          fatal pos "The head of an application isn't a symbol."*)
+      | (Prod, [])         ->
+          match t with
+          | Symb(s) ->
               if s == sind then prf_of_p (app (_Symb scons) (List.rev xs))
               else fatal pos "%a is not a constructor of %a"
                      pp_symbol scons pp_symbol sind
-          | _ -> fatal pos "Appl. The type of %a is not supported"
-                   pp_symbol scons
-          end
-      | Type   -> fatal pos "Error due to 'Type' in %a." pp_symbol scons
-      | Kind   -> fatal pos "Error due to 'Kind' in %a." pp_symbol scons
-      | Wild   -> fatal pos "Error due to 'Wild' in %a." pp_symbol scons
-      | Meta _ -> fatal pos "Error due to 'Meta' in %a." pp_symbol scons
-      | Patt _ -> fatal pos "Error due to 'Patt' in %a." pp_symbol scons
-      | TEnv _ -> fatal pos "Error due to 'TEnv' in %a." pp_symbol scons
-      | TRef _ -> fatal pos "Error due to 'TRef' in %a." pp_symbol scons
-      | LLet _ -> fatal pos "Error due to 'LLet' in %a." pp_symbol scons
+          | Prod(a,b) ->
+              let (x,b) =
+                if Bindlib.binder_occur b then
+                  Bindlib.unbind b
+                else
+                  let x = Bindlib.new_var mkfree "x" in
+                  (x, Bindlib.subst b (Vari x))
+              in
+              let b = case ((Bindlib.box_var x)::xs) b in
+              begin
+                match unfold a with
+                | Symb(s) ->
+                    let b =
+                      if s == sind then _Impl (prf_of_p (Bindlib.box_var x)) b
+                      else b
+                    in
+                    _Prod (Bindlib.box a) (Bindlib.bind_var x b)
+                | _ -> fatal pos "Prod. The type of %a is not supported"
+                         pp_symbol scons
+              end
+          | Vari _ ->
+              fatal pos "Var. The type of %a is not supported"
+                pp_symbol scons
+          | Abst _ ->
+              fatal pos "Abst. The type of %a is not supported"
+                pp_symbol scons
+          | Appl (t1, _) ->
+              begin
+                match unfold t1 with
+                | Symb s ->
+                    if s == sind then prf_of_p (app (_Symb scons) (List.rev xs))
+                    else fatal pos "%a is not a constructor of %a"
+                           pp_symbol scons pp_symbol sind
+                | _ -> fatal pos "Appl. The type of %a is not supported"
+                         pp_symbol scons
+              end
+          | Type   -> fatal pos "Error due to 'Type' in %a." pp_symbol scons
+          | Kind   -> fatal pos "Error due to 'Kind' in %a." pp_symbol scons
+          | Wild   -> fatal pos "Error due to 'Wild' in %a." pp_symbol scons
+          | Meta _ -> fatal pos "Error due to 'Meta' in %a." pp_symbol scons
+          | Patt _ -> fatal pos "Error due to 'Patt' in %a." pp_symbol scons
+          | TEnv _ -> fatal pos "Error due to 'TEnv' in %a." pp_symbol scons
+          | TRef _ -> fatal pos "Error due to 'TRef' in %a." pp_symbol scons
+          | LLet _ -> fatal pos "Error due to 'LLet' in %a." pp_symbol scons
     in
     case [] !(scons.sym_type)
   in
@@ -325,6 +334,7 @@ let ind_rule : string -> string -> term -> sym list -> p_rule list =
                         create_p_rule (arg_patt::arg_list) b hyp_rec_list
                   | _ -> assert false (* See the function named "principle" *)
                 end
+            | Appl _ -> Pos.none (Pos.none P_Type, Pos.none P_Type)
             | _ -> assert false (* See the function named "principle" *)
           in
           (create_p_rule [] (!(t.sym_type)) [])::tmp
