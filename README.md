@@ -1,6 +1,6 @@
 Lambdapi, a proof assistant based on the λΠ-calculus modulo rewriting [![Gitter][gitter-badge]][gitter-link] [![Matrix][matrix-badge]][matrix-link]
-[![Coverage Status](https://coveralls.io/repos/github/amelieled/lambdapi_examples/badge.svg?branch=master)](https://coveralls.io/github/amelieled/lambdapi_examples?branch=master)
 =====================================================================
+[![Coverage Status](https://coveralls.io/repos/github/amelieled/lambdapi_examples/badge.svg?branch=master)](https://coveralls.io/github/amelieled/lambdapi_examples?branch=master)
 
 Lambdapi is a proof assistant based on the λΠ-calculus modulo rewriting,
 mostly compatible with the proof checker Dedukti. More details are given
