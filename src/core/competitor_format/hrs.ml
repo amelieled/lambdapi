@@ -8,7 +8,8 @@ open Lplib.Base
 open Lplib.Extra
 
 open Timed
-open Terms
+open! Core
+open Core.Terms
 
 (** [print_sym oc s] outputs the fully qualified name of [s] to [oc]. The name
     is prefixed by ["c_"], and modules are separated with ["_"], not ["."]. *)

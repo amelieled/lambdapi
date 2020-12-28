@@ -1,0 +1,5 @@
+(library
+ (name competitor_format)
+ (public_name lambdapi.core.competitor_format)
+ (modules :standard)
+ (libraries core unix stdlib-shims timed bindlib earley.core why3 lplib))

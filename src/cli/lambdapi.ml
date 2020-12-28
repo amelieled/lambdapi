@@ -4,7 +4,7 @@ open! Lplib
 open Lplib.Extra
 
 open Cmdliner
-open Core
+open! Core
 open Files
 open Console
 open Version
@@ -42,8 +42,8 @@ let check_cmd : Config.t -> int option -> bool -> string list -> unit =
         in
         Option.iter run chk
       in
-      run_checker "confluence"  Hrs.to_HRS cfg.confluence  "confluent";
-      run_checker "termination" Xtc.to_XTC cfg.termination "terminating"
+      run_checker "confluence"  Competitor_format.Hrs.to_HRS cfg.confluence  "confluent";
+      run_checker "termination" Competitor_format.Xtc.to_XTC cfg.termination "terminating"
     in
     List.iter handle files
   in
