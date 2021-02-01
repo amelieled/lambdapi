@@ -79,6 +79,7 @@ let handle_tactic :
       log_tact "%a" Parsing.Pretty.tactic tac
     end;
   match tac.elt with
+  | P_tac_set_option(q) -> Set_option.handle_set_option q ; ps, None
   | P_tac_query(q) -> ps, Queries.handle_query ss (Some ps) q
   | P_tac_solve -> tac_solve tac.pos ps, None
   | P_tac_focus(i) ->

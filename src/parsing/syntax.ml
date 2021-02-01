@@ -173,24 +173,29 @@ type eval_config =
   { strategy : strategy   (** Evaluation strategy.          *)
   ; steps    : int option (** Max number of steps if given. *) }
 
+(** Parser-level representation of a set option command. *)
+type p_set_option_aux =
+  | P_set_option_verbose of int
+  (** Sets the verbosity level. *)
+  | P_set_option_debug of bool * string
+  (** Toggles logging functions described by string according to boolean. *)
+  | P_set_option_flag of string * bool
+  (** Sets the boolean flag registered under the given name (if any). *)
+  | P_set_option_prover of string
+  (** Set the prover to use inside a proof. *)
+  | P_set_option_prover_timeout of int
+  (** Set the timeout of the prover (in seconds). *)
+
+type p_set_option = p_set_option_aux loc
+
 (** Parser-level representation of a query command. *)
 type p_query_aux =
-  | P_query_verbose of int
-  (** Sets the verbosity level. *)
-  | P_query_debug of bool * string
-  (** Toggles logging functions described by string according to boolean. *)
-  | P_query_flag of string * bool
-  (** Sets the boolean flag registered under the given name (if any). *)
   | P_query_assert of bool * p_assertion
   (** Assertion (must fail if boolean is [true]). *)
   | P_query_infer of p_term * eval_config
   (** Type inference command. *)
   | P_query_normalize of p_term * eval_config
   (** Normalisation command. *)
-  | P_query_prover of string
-  (** Set the prover to use inside a proof. *)
-  | P_query_prover_timeout of int
-  (** Set the timeout of the prover (in seconds). *)
   | P_query_print of qident option
   (** Print information about a symbol or the current goals. *)
   | P_query_proofterm
@@ -224,6 +229,8 @@ type p_tactic_aux =
   (** Apply default unification solving algorithm. *)
   | P_tac_query of p_query
   (** Query. *)
+  | P_tac_set_option of p_set_option
+  (** Set option. *)
   | P_tac_fail
   (** A tactic that always fails. *)
 
@@ -291,10 +298,12 @@ type p_command_aux =
   (** Rewriting rule declarations. *)
   | P_inductive of p_modifier list * p_inductive list
   (** Definition of inductive types *)
-  | P_set of p_config
+  | P_config of p_config
   (** Set the configuration. *)
   | P_query of p_query
   (** Query. *)
+  | P_set_option of p_set_option
+  (** Set option. *)
 
 (** Parser-level representation of a single (located) command. *)
 type p_command = p_command_aux loc
@@ -368,6 +377,14 @@ let eq_p_assertion : p_assertion eq = fun a1 a2 ->
       eq_p_term t1 t2 && eq_p_term u1 u2
   | _, _ -> false
 
+let eq_p_set_option : p_set_option eq = fun {elt=q1;_} {elt=q2;_} ->
+  match q1, q2 with
+  | P_set_option_prover s1, P_set_option_prover s2 -> s1 = s2
+  | P_set_option_prover_timeout t1, P_set_option_prover_timeout t2 -> t1 = t2
+  | P_set_option_verbose n1, P_set_option_verbose n2 -> n1 = n2
+  | P_set_option_debug (b1,s1), P_set_option_debug (b2,s2) -> b1 = b2 && s1 = s2
+  | _, _ -> false
+          
 let eq_p_query : p_query eq = fun {elt=q1;_} {elt=q2;_} ->
   match q1, q2 with
   | P_query_assert(b1,a1), P_query_assert(b2,a2) ->
@@ -375,11 +392,7 @@ let eq_p_query : p_query eq = fun {elt=q1;_} {elt=q2;_} ->
   | P_query_infer(t1,c1), P_query_infer(t2,c2)
   | P_query_normalize(t1,c1), P_query_normalize(t2,c2) ->
       eq_p_term t1 t2 && c1 = c2
-  | P_query_prover s1, P_query_prover s2 -> s1 = s2
-  | P_query_prover_timeout t1, P_query_prover_timeout t2 -> t1 = t2
   | P_query_print io1, P_query_print(io2) -> Option.equal eq_qident io1 io2
-  | P_query_verbose n1, P_query_verbose n2 -> n1 = n2
-  | P_query_debug (b1,s1), P_query_debug (b2,s2) -> b1 = b2 && s1 = s2
   | P_query_proofterm, P_query_proofterm -> true
   | _, _ -> false
 
@@ -392,6 +405,7 @@ let eq_p_tactic : p_tactic eq = fun {elt=t1;_} {elt=t2;_} ->
   | P_tac_rewrite(b1,p1,t1), P_tac_rewrite(b2,p2,t2) ->
       b1 = b2 && Option.equal eq_p_rw_patt p1 p2 && eq_p_term t1 t2
   | P_tac_query q1, P_tac_query q2 -> eq_p_query q1 q2
+  | P_tac_set_option q1, P_tac_set_option q2 -> eq_p_set_option q1 q2
   | P_tac_why3 so1, P_tac_why3 so2 -> so1 = so2
   | P_tac_focus n1, P_tac_focus n2 -> n1 = n2
   | P_tac_simpl, P_tac_simpl
@@ -441,8 +455,9 @@ let eq_p_command : p_command eq = fun {elt=c1;_} {elt=c2;_} ->
   | P_rules(r1), P_rules(r2) ->  List.equal eq_p_rule r1 r2
   | P_inductive(m1,l1), P_inductive(m2,l2) ->
       m1 = m2 && List.equal eq_p_inductive l1 l2
-  | P_set(c1), P_set(c2) -> eq_p_config c1 c2
+  | P_config(c1), P_config(c2) -> eq_p_config c1 c2
   | P_query(q1), P_query(q2) -> eq_p_query q1 q2
+  | P_set_option q1, P_set_option q2 -> eq_p_set_option q1 q2
   | _, _ -> false
 
 (** [fold_idents f a ast] allows to recursively build a value of type ['a]
@@ -540,13 +555,17 @@ let fold_idents : ('a -> qident -> 'a) -> 'a -> p_command list -> 'a =
         fold_term_vars (StrSet.add id.elt vs) (fold_term_vars vs a t) u
   in
 
+  let fold_set_option : 'a -> p_set_option -> 'a = fun a q ->
+    match q.elt with
+    | P_set_option_verbose _
+    | P_set_option_debug (_, _)
+    | P_set_option_flag (_, _)
+    | P_set_option_prover _
+    | P_set_option_prover_timeout _ -> a
+  in
+    
   let fold_query_vars : StrSet.t -> 'a -> p_query -> 'a = fun vs a q ->
     match q.elt with
-    | P_query_verbose _
-    | P_query_debug (_, _)
-    | P_query_flag (_, _)
-    | P_query_prover _
-    | P_query_prover_timeout _
     | P_query_print None
     | P_query_proofterm -> a
     | P_query_assert (_, P_assert_typing(t,u))
@@ -574,6 +593,7 @@ let fold_idents : ('a -> qident -> 'a) -> 'a -> p_command list -> 'a =
     | P_tac_rewrite (_, None, t) -> (vs, fold_term_vars vs a t)
     | P_tac_rewrite (_, Some p, t) ->
         (vs, fold_term_vars vs (fold_rw_patt_vars vs a p) t)
+    | P_tac_set_option q -> (vs, fold_set_option a q)
     | P_tac_query q -> (vs, fold_query_vars vs a q)
     | P_tac_intro idopts -> (add_idopts vs idopts, a)
     | P_tac_simpl
@@ -600,8 +620,9 @@ let fold_idents : ('a -> qident -> 'a) -> 'a -> p_command list -> 'a =
     | P_require (_, _)
     | P_require_as (_, _)
     | P_open _ -> a
+    | P_set_option q -> fold_set_option a q
     | P_query q -> fold_query_vars StrSet.empty a q
-    | P_set c -> fold_config a c
+    | P_config c -> fold_config a c
     | P_rules rs -> List.fold_left fold_rule a rs
     | P_inductive (_, ind_list) -> List.fold_left fold_inductive a ind_list
     | P_symbol {p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf;_} ->

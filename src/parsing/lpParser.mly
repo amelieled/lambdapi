@@ -243,6 +243,14 @@ assert_kw:
   | ASSERT { false }
   | ASSERT_NOT { true }
 
+set_option:
+  | SET DEBUG fl=DEBUG_FLAGS
+    { let (b, s) = fl in make_pos $loc (P_set_option_debug(b, s)) }
+  | SET FLAG s=STRINGLIT b=SWITCH { make_pos $loc (P_set_option_flag(s,b)) }
+  | SET PROVER s=STRINGLIT { make_pos $loc (P_set_option_prover(s)) }
+  | SET PROVER_TIMEOUT n=INT { make_pos $loc (P_set_option_prover_timeout(n)) }
+  | SET VERBOSE i=INT { make_pos $loc (P_set_option_verbose(i)) }
+
 query:
   | k=assert_kw ps=arg_list* TURNSTILE t=term COLON a=term
     {
@@ -272,12 +280,6 @@ query:
     { make_pos $loc (P_query_normalize(t, {strategy=SNF; steps=None})) }
   | PRINT qid=qident? { make_pos $loc (P_query_print qid) }
   | PROOFTERM { make_pos $loc P_query_proofterm }
-  | SET DEBUG fl=DEBUG_FLAGS
-      { let (b, s) = fl in make_pos $loc (P_query_debug(b, s)) }
-  | SET FLAG s=STRINGLIT b=SWITCH { make_pos $loc (P_query_flag(s,b)) }
-  | SET PROVER s=STRINGLIT { make_pos $loc (P_query_prover(s)) }
-  | SET PROVER_TIMEOUT n=INT { make_pos $loc (P_query_prover_timeout(n)) }
-  | SET VERBOSE i=INT { make_pos $loc (P_query_verbose(i)) }
   | TYPE_QUERY t=term
     { make_pos $loc (P_query_infer(t, {strategy=NONE; steps=None}))}
 
@@ -334,8 +336,9 @@ command:
       { make_pos $loc (P_inductive(ms, is)) }
   | RULE rs=separated_nonempty_list(WITH, rule) SEMICOLON
       { make_pos $loc (P_rules(rs)) }
-  | SET c=config SEMICOLON { make_pos $loc (P_set(c)) }
+  | SET c=config SEMICOLON { make_pos $loc (P_config(c)) }
   | q=query SEMICOLON { make_pos $loc (P_query(q)) }
+  | q=set_option SEMICOLON { make_pos $loc (P_set_option(q)) }
   | EOF { raise End_of_file }
 
 // Environment of a metavariable or rewrite pattern

@@ -202,6 +202,8 @@ fun compile ss cmd ->
   if !log_enabled then log_hndl (blu "%a") Parsing.Pretty.command cmd;
   let scope_basic exp pt = Scope.scope_term exp ss Env.empty pt in
   match cmd.elt with
+  | P_set_option(q) ->
+      Set_option.handle_set_option q ; (ss, None, None)
   | P_query(q) ->
       let res = Queries.handle_query ss None q in (ss, None, res)
   | P_require(b,ps) ->
@@ -446,7 +448,7 @@ fun compile ss cmd ->
     in
     (ss, Some(data), None)
 
-  | P_set(cfg)                 ->
+  | P_config(cfg)                 ->
       let ss =
         let with_path : Path.t -> qident -> qident = fun path qid ->
           let path = List.map (fun s -> (s, false)) path in

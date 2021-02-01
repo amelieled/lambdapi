@@ -8,7 +8,7 @@ open File_management.Error
 open! Scoping
 open Scoping.Terms
 open Scoping.Basics
-open Scoping.Env
+(*open Scoping.Env*)
 open Print
 
 (** Logging function for unification. *)
@@ -402,14 +402,14 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
     if !log_enabled then log_unif "imitate_prod %a" pp_meta m;
     let n = m.meta_arity in
     let (env, s) = Ctxt_for_eval.of_prod ctx n !(m.meta_type) in
-    let xs = Array.map _Vari (vars env) in
+    let xs = Array.map _Vari (Env.vars env) in
 
-    let t1 = to_prod env _Type in
+    let t1 = Env.to_prod env _Type in
     let m1 = Meta.fresh t1 n in
 
     let y = Bindlib.new_var mkfree "y" in
-    let env' = add y (_Meta m1 xs) None env in
-    let t2 = to_prod env' (lift s) in
+    let env' = Env.add y (_Meta m1 xs) None env in
+    let t2 = Env.to_prod env' (lift s) in
     let m2 = Meta.fresh t2 (n+1) in
 
     let mxs = Bindlib.unbox (_Meta m xs) in

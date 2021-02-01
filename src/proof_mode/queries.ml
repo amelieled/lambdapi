@@ -59,24 +59,6 @@ let handle_query : Sig_state.t -> proof_state option -> p_query -> result =
                 fatal q.pos "Assertion failed."
       end;
       None
-  | P_query_debug(e,s) ->
-      (* Just update the option, state not modified. *)
-      File_management.Error.set_debug e s;
-      out 3 "(flag) debug → %s%s\n" (if e then "+" else "-") s;
-      None
-  | P_query_verbose(i) ->
-      (* Just update the option, state not modified. *)
-      if Timed.(!File_management.Error.verbose) = 0 then
-        (Timed.(File_management.Error.verbose := i); out 1 "(flag) verbose → %i\n" i)
-      else
-        (out 1 "(flag) verbose → %i\n" i; Timed.(File_management.Error.verbose := i));
-      None
-  | P_query_flag(id,b) ->
-      (* We set the value of the flag, if it exists. *)
-      (try File_management.Error.set_flag id b
-       with Not_found -> wrn q.pos "Unknown flag \"%s\"." id);
-      out 3 "(flag) %s → %b\n" id b;
-      None
   | P_query_infer(pt, cfg) ->
       let env = Proof.focus_env ps in
       let ctxt = Env.to_ctxt env in
@@ -95,12 +77,6 @@ let handle_query : Sig_state.t -> proof_state option -> p_query -> result =
       ignore (Infer.infer Unif.solve_noexn pt.pos ctxt t);
       out 1 "(comp) %a\n" pp_term (Eval.eval cfg ctxt t);
       Some (Format.asprintf "%a" pp_term (Eval.eval cfg ctxt t))
-  | P_query_prover(s) ->
-      Timed.(Why3_tactic.default_prover := s);
-      None
-  | P_query_prover_timeout(n) ->
-      Timed.(Why3_tactic.timeout := n);
-      None
   | P_query_print(None) ->
       (match ps with
        | None -> fatal q.pos "Not in a proof."

@@ -185,20 +185,24 @@ let assertion : p_assertion pp = fun ff asrt ->
   | P_assert_typing(t,a) -> out "%a : %a" term t term a
   | P_assert_conv(t,u)   -> out "%a ≡ %a" term t term u
 
+let set_option : p_set_option pp = fun ff q ->
+  let out fmt = Format.fprintf ff fmt in
+  match q.elt with
+  | P_set_option_verbose(i) -> out "set verbose %i" i
+  | P_set_option_debug(true ,s) -> out "set debug \"+%s\"" s
+  | P_set_option_debug(false,s) -> out "set debug \"-%s\"" s
+  | P_set_option_flag(s, b) ->
+      out "set flag \"%s\" %s" s (if b then "on" else "off")
+  | P_set_option_prover(s) -> out "set prover \"%s\"" s
+  | P_set_option_prover_timeout(n) -> out "set prover_timeout %d" n
+   
 let query : p_query pp = fun ff q ->
   let out fmt = Format.fprintf ff fmt in
   match q.elt with
   | P_query_assert(true , asrt) -> out "assertnot %a" assertion asrt
   | P_query_assert(false, asrt) -> out "assert %a" assertion asrt
-  | P_query_verbose(i) -> out "set verbose %i" i
-  | P_query_debug(true ,s) -> out "set debug \"+%s\"" s
-  | P_query_debug(false,s) -> out "set debug \"-%s\"" s
-  | P_query_flag(s, b) ->
-      out "set flag \"%s\" %s" s (if b then "on" else "off")
   | P_query_infer(t, _) -> out "type %a" term t
   | P_query_normalize(t, _) -> out "compute %a" term t
-  | P_query_prover(s) -> out "set prover \"%s\"" s
-  | P_query_prover_timeout(n) -> out "set prover_timeout %d" n
   | P_query_print(None) -> out "print"
   | P_query_print(Some s) -> out "print %a" qident s
   | P_query_proofterm -> out "proofterm"
@@ -220,6 +224,7 @@ let tactic : p_tactic pp = fun ff t ->
   | P_tac_why3(p) ->
       let prover ff s = Format.fprintf ff " %s" s in
       out "why3%a" (Option.pp prover) p
+  | P_tac_set_option(q) -> set_option ff q
   | P_tac_query(q) -> query ff q
   | P_tac_fail -> out "fail"
   | P_tac_solve -> out "solve"
@@ -262,12 +267,12 @@ let command : p_command pp = fun ff cmd ->
       out "%a" (List.pp modifier "") ms;
       out "%a" (inductive "inductive") i;
       List.iter (out "%a" (inductive "\nwith")) il
-  | P_set(P_config_builtin(n,i)) ->
+  | P_config(P_config_builtin(n,i)) ->
       out "set builtin %S ≔ %a" n qident i
-  | P_set(P_config_unop(unop)) ->
+  | P_config(P_config_unop(unop)) ->
       let (s, p, qid) = unop in
       out "set prefix %f %S ≔ %a" p s qident qid
-  | P_set(P_config_binop(s,a,p,qid)) ->
+  | P_config(P_config_binop(s,a,p,qid)) ->
       let a =
         match a with
         | Pratter.Neither -> ""
@@ -275,12 +280,12 @@ let command : p_command pp = fun ff cmd ->
         | Pratter.Right -> " right"
       in
       out "set infix%s %f %S ≔ %a" a p s qident qid
-  | P_set(P_config_unif_rule(ur)) ->
+  | P_config(P_config_unif_rule(ur)) ->
       out "set unif_rule %a" unif_rule ur
-  | P_set(P_config_quant(qid)) ->
+  | P_config(P_config_quant(qid)) ->
       out "set quantifier %a" qident qid
-  | P_query(q) ->
-     query ff q
+  | P_query(q) -> query ff q
+  | P_set_option(q) -> set_option ff q
   end;
   out ";"
 
