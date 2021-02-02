@@ -1,0 +1,5 @@
+(library
+ (name scoping)
+ (public_name lambdapi.scoping)
+ (modules :standard)
+ (libraries bindlib parsing))
