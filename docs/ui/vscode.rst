@@ -1,5 +1,5 @@
-Editing lambdapi source code with `VSCode`_
-===========================================
+`VSCode`_
+=========
 
 There is an extension for VSCode >= 1.37 derived from VSCoq. To install
 it do from the ``lambdapi`` repository:
@@ -146,5 +146,12 @@ Hover
 
 Hovering symbols provides their type. This feature is still
 experimental.
+
+Logs
+----
+
+Logs are displayed in a terminal which opens automatically
+when needed.
+
 
 .. _VSCode: https://code.visualstudio.com/

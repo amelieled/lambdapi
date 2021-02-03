@@ -1,92 +1,118 @@
-Syntax of commands
-==================
+Commands
+========
 
-The BNF grammar of Lambdapi is in `syntax.bnf <syntax.bnf>`__.
+The BNF grammar of Lambdapi is in `syntax.bnf <https://raw.githubusercontent.com/Deducteam/lambdapi/master/docs/syntax.bnf>`__.
 
 In this section, we will illustrate the syntax of Lambdapi using
 examples. The first thing to note is that Lambdapi files are formed of a
-list of commands. A command starts with a particular, reserved keyword.
-And it ends either at the start of a new command or at the end of the
-file.
-
-Comments
---------
+list of commands. A command starts with a particular reserved keyword
+and ends with a semi-colon.
 
 One-line comments are introduced by ‘//’:
 
 ::
 
-   // all this is ignored
+   // These words are ignored
 
-In Emacs, one can (un)comment a region by using Meta-; .
+And multi-line comments are opened with ‘/*’ and closed with ‘*/’.
+
+::
+
+   /* These
+      words are
+      ignored */
 
 ``require``
 -----------
 
-The ``require`` command informs the type-checker that the current module
+Informs the type-checker that the current module
 depends on some other module, which must hence be compiled.
+
+A required module can optionally be aliased, in which case it
+can be referred to with the provided name.
 
 ::
 
-   require boolean
-   require church.list as list
+   require std.bool;
+   require church.list as list;
 
-Note that a required module can optionally be aliased, in which case it
-can be referred to with the provided name.
+Note that ``require`` always take as argument a qualified
+identifier. See :doc:`module` for more details.
 
 ``open``
 --------
 
-The ``open`` command puts into scope the symbols defined in the given
-module. It can also be combined with the ``require`` command.
+Puts into scope the symbols of the previously required module given
+in argument. It can also be combined with the ``require`` command.
 
 ::
 
-   open booleans
-   require open church.sums
+   require std.bool;
+   open std.bool;
+   require open church.sums;
+
+Note that ``open`` always take as argument a qualified
+identifier. See :doc:`module` for more details.
 
 ``symbol``
 ----------
 
-Symbols are declared using the ``symbol`` command, possibly associated
-with some modifier or an exposition marker. In the following example,
-``constant`` is a modifier and ``private`` is an exposition marker.
+Allows to declare or define a symbol as follows:
+
+``symbol`` *modifiers* *identifier* *parameters* [``:`` *type*] [``≔`` *term*] [``begin`` *proof* ``end``] ``;``
+
+The identifier should not have already been used in the current module.
+It must be followed by a type or a definition (or both).
+
+The following proof (if any) allows the user to solve typing and
+unification goals the system could not solve automatically. It can
+also be used to give a definition interactively (if no defining term
+is provided).
+
+Without ``≔``, this is just a symbol declaration. The following proof
+script does *not* provide a proof of *type* but help the system solve
+unification constraints it couldn't solve automatically for checking
+the well-sortedness of *type*.
+
+For defining a symbol or proving a theorem, which is the same thing,
+``≔`` is mandatory. If no defining *term* is provided, then the
+following proof script must indeed include a proof of *type*. Note
+that ``symbol f:A ≔ t`` is equivalent to ``symbol f:A ≔ begin refine t
+end``.
+
+Examples:
 
 ::
 
-   constant symbol Nat : TYPE
-   constant symbol zero : Nat
-   constant symbol succ (x:Nat) : Nat
-   symbol add : Nat → Nat → Nat
-   constant symbol list : Nat → TYPE
-   constant symbol nil : List zero
-   constant symbol cons : Nat → Πn, List n → List(succ n)
-   private symbol aux : Πn, List n → Nat
+   symbol N:TYPE;
 
-The command requires a fresh symbol name (it should not have already
-been used in the current module) and a type for the symbol.
+   // with no proof script
+   symbol add : N → N → N; // a type but no definition (axiom)
+   symbol double n ≔ add n n; // no type but a definition
+   symbol triple n : N ≔ add n (double n); // a type and a definition
 
-It is possible to put arguments on the left side of the ``:`` symbol
-(similarly to a value declaration in OCaml).
+   // with a proof script (theorem or interactive definition)
+   symbol F : N → TYPE;
+   symbol idF n : F n → F n ≔
+   begin
+     assume n x;
+     apply x;
+   end;
 
-Data types and predicates must be given types of the form
-``Πx1:T1,..,Πxn:Tn,TYPE``.
+**Modifiers:**
 
-``T→U`` is a shorthand for ``Πx:T,U`` when ``x`` does not occur in
-``U``.
+Modifiers are keywords that precede a symbol declaration to provide
+the system with additional information on its properties or behavior.
 
-We recommend to start types and predicates by a capital letter.
+- Modifiers for the unification engine:
 
-**Modifiers:** - Modifiers for the unification engine, - ``constant``:
-no rule can be added to the symbol - ``injective``: the symbol can be
-considered as injective, that is, if ``f t1 ..      tn`` ≡
-``f u1 .. un``, then ``t1``\ ≡\ ``u1``, …, ``tn``\ ≡\ ``un``. For the
-moment, the verification is left to the user.
+  - ``constant``: no rule can be added to the symbol
+  - ``injective``: the symbol can be considered as injective, that is, if ``f t1 .. tn`` ≡ ``f u1 .. un``, then ``t1``\ ≡\ ``u1``, …, ``tn``\ ≡\ ``un``. For the moment, the verification is left to the user.
 
 -  Exposition markers define how a symbol can be used outside the module
    where it is defined.
 
-   -  ``public`` (default): the symbol can be used without restriction
+   -  by default, the symbol can be used without restriction
    -  ``private``: the symbol cannot be used
    -  ``protected``: the symbol can only be used in left-hand side of
       rewrite rules.
@@ -106,21 +132,36 @@ moment, the verification is left to the user.
    modifier tells Lambdapi to apply rules defining a sequential symbol
    in the order they have been declared (note that the order of the
    rules may depend on the order of the ``require`` commands). An
-   example can be seen in
-   ```rule_order.lp`` <../tests/OK/rule_order.lp>`__.
+   example can be seen in ``tests/OK/rule_order.lp``.
    *WARNING:* using this modifier can break important properties.
 
-**Implicit arguments:** Some function symbol arguments can be declared
-as implicit meaning that they must not be given by the user later.
-Implicit arguments are replaced by ``_`` at parsing time, generating
-fresh metavariables. An argument declared as implicit can be explicitly
-given by enclosing it between curly brackets ``{`` … ``}`` though. If a
-function symbol is prefixed by ``@`` then the implicit arguments
-mechanism is disabled and all the arguments must be explicitly given.
+Examples:
 
 ::
 
-   symbol eq {a:U} : T a → T a → Prop
+   constant symbol Nat : TYPE;
+   constant symbol zero : Nat;
+   constant symbol succ (x:Nat) : Nat;
+   symbol add : Nat → Nat → Nat;
+   opaque symbol add0 n : add n 0 = n ≔ begin ... end; // theorem
+   injective symbol double n ≔ add n n;
+   constant symbol list : Nat → TYPE;
+   constant symbol nil : List zero;
+   constant symbol cons : Nat → Π n, List n → List(succ n);
+   private symbol aux : Π n, List n → Nat;
+
+**Implicit arguments:** Some arguments can be declared as implicit by
+encloding them into curly brackets ``{`` … ``}``. Then, they must not
+be given by the user later.  Implicit arguments are replaced by ``_``
+at parsing time, generating fresh metavariables. An argument declared
+as implicit can be explicitly given by enclosing it between curly
+brackets ``{`` … ``}`` though. If a function symbol is prefixed by
+``@`` then the implicit arguments mechanism is disabled and all the
+arguments must be explicitly given.
+
+::
+
+   symbol eq {a:U} : T a → T a → Prop;
    // The first argument of `eq` is declared as implicit and must not be given
    // unless `eq` is prefixed by `@`.
    // Hence, [eq t u], [eq {_} t u] and [@eq _ t u] are all valid and equivalent.
@@ -136,9 +177,9 @@ command.
 
 ::
 
-   rule add zero      $n ↪ $n
-   rule add (succ $n) $m ↪ succ (add $n $m)
-   rule mul zero      _  ↪ zero
+   rule add zero      $n ↪ $n;
+   rule add (succ $n) $m ↪ succ (add $n $m);
+   rule mul zero      _  ↪ zero;
 
 Terms prefixed by the sigil ``$`` and ``_`` are pattern variables.
 
@@ -148,7 +189,7 @@ pattern-matching on patterns à la Miller but modulo β-equivalence only
 
 ::
 
-   rule diff (λx, sin $F[x]) ↪ λx, diff (λx, $F[x]) x × cos $F[x]
+   rule diff (λx, sin $F[x]) ↪ λx, diff (λx, $F[x]) x × cos $F[x];
 
 Patterns can contain abstractions ``λx, _`` and the user may attach an
 environment made of *distinct* bound variables to a pattern variable to
@@ -160,7 +201,7 @@ freely occur in ``t``.
 
 ::
 
-   rule lam (λx, app $F[] x) ↪ $F // η-reduction
+   rule lam (λx, app $F[] x) ↪ $F; // η-reduction
 
 Hence, the rule ``lam (λx, app $F[] x) ↪ $F`` implements η-reduction
 since no valid instance of ``$F`` can contain ``x``.
@@ -186,20 +227,20 @@ left-hand sides can contain defined symbols:
 
 ::
 
-   rule add (add x y) z ↪ add x (add y z)
+   rule add (add x y) z ↪ add x (add y z);
 
 They can overlap:
 
 ::
 
    rule add zero x ↪ x
-   with add x zero ↪ x
+   with add x zero ↪ x;
 
 And they can be non-linear:
 
 ::
 
-   rule minus x x ↪ zero
+   rule minus x x ↪ zero;
 
 Note that rewriting rules can also be defined simultaneously, using the
 ``with`` keyword instead of the ``rule`` keyword for all but the first
@@ -208,177 +249,33 @@ rule.
 ::
 
    rule add zero      $n ↪ $n
-   with add (succ $n) $m ↪ succ (add $n $m)
+   with add (succ $n) $m ↪ succ (add $n $m);
 
 Adding sets of rules allows to maintain confluence.
 
-Examples of patterns are available in the file
-```patterns.lp`` <../tests/OK/patterns.lp>`__ of the test suite.
+Examples of patterns are available in ``tests/OK/patterns.lp``.
 
-``definition``
---------------
-
-The ``definition`` command is used to immediately define a new symbol,
-for it to be equal to some (closed) term. Definitions can use exposition
-markers the same way the ``symbol`` command use them.
-
-::
-
-   definition plus_two : Nat → Nat ≔ λn,add n (succ (succ zero))
-   definition plus_two (n : Nat) : Nat ≔ add n (succ (succ zero))
-   definition plus_two (n : Nat) ≔ add n (succ (succ zero))
-   definition plus_two n ≔ add n (succ (succ zero))
-   protected definition plus_two n ≔ add n (succ (succ zero))
-
-Note that some type annotations can be omitted, and that it is possible
-to put arguments on the left side of the ``≔`` symbol (similarly to a
-value declaration in OCaml). Some arguments can be declared as implicit
-by enclosing them in curly brackets.
-
-
-``inductive``
--------------
-The command ``inductive`` can be used to define an inductive type, its constructors and its associated induction principle if it can be generated. The name of the induction principle is the name of the type prefixed with "ind_". For generating the induction principle, we assume defined the following builtins:
-
-::
-   
-   ￼set builtin "Prop" ≔ ... // : TYPE
-   ￼set builtin "P"    ≔ ... // : Prop → TYPE
-￼
-For the moment, we only support first-order data types, with dependent and polymorphic types.
-Some cases of nested type are supported too, like the type Bush.
-Example:
-
-::
-   
-   ￼inductive Nat : TYPE ≔
-   ￼ | z    : Nat
-   ￼ | succ : Nat → Nat
-   
-is equivalent to:
-￼
-::
-   
-   ￼injective symbol Nat  : TYPE
-   ￼constant  symbol z    : Nat
-   ￼constant  symbol succ : Nat → Nat
-   ￼symbol ind_Nat p : π (p 0) → (Πx, π (p x) → π (p (succ x))) → Πx, π (p x)
-   ￼rule ind_Nat _  $pz    _       z     ↪ $pz
-   ￼with ind_Nat $p $pz $psucc (succ $n) ↪ $psucc $n (ind_Nat $p $pz $psucc $n)
-
-
-``theorem``
------------
-
-The ``theorem`` command makes the user enter a new interactive mode. The
-user has to provide a term of some given type. Such a goal is
-materialized by a metavariable of the given type (goals and
-metavariables are synonyms). One can then partially instantiate a goal
-metavariable by using commands specific to this mode called tactics. A
-tactic may generate new goals/metavariables. The proof of the theorem is
-complete only when all generated goals have been solved.
-
-A proof must start by the keyword ``proof`` followed by a sequence of
-`tactics <tactics.rst>`__, and must end by the keywords ``qed`` (when the
-proof is complete), ``admit`` (when one wants to admit the theorem
-without proving it) or ``abort`` (when one wants to end the proof
-without adding the theorem in the environment).
-
-``type``
---------
-
-The ``type`` command returns the type of a term.
-
-::
-
-   symbol N : TYPE
-   symbol z : N
-   symbol s : N→N
-   type N→N // returns TYPE
-   type s z // returns N
-
-``compute``
------------
-
-The ``compute`` command computes the normal form of a term.
-
-::
-
-   symbol N : TYPE
-   symbol z : N
-   symbol s : N→N
-   symbol add : N→N→N
-   rule add z $x ↪ $x
-   with add (s $x) $y ↪ add $x (s $y)
-   compute add (s (s z)) (s (s z)) // returns s (s (s (s z)))
-
-``assert`` and ``assertnot``
-----------------------------
-
-The ``assert`` and ``assertnot`` are convenient for checking that the
-validity, or the invalidity, of typing judgments or convertibilities.
-This can be used for unit testing of Lambdapi, with both positive and
-negative tests.
-
-::
-
-   assert zero : Nat
-   assert add (succ zero) zero ≡ succ zero
-   assertnot zero ≡ succ zero
-   assertnot succ : Nat
-
-``set``
--------
+``set prefix|infix|quantifier|builtin|unif_rule``
+----------------------------------------------------------
 
 The ``set`` command is used to control the behaviour of Lambdapi and
 extension points in its syntax.
 
-**verbose level** The verbose level can be set to an integer between 0
-and 3. Higher is the verbose level, more details are printed.
+**prefix symbols** The following code defines a prefix symbol for
+negation.
 
 ::
 
-   set verbose 1
-
-**debug mode** The user can activate (with ``+``) or deactivate (with
-``-``) the debug mode for some functionalities as follows:
-
-::
-
-   set debug +ts
-   set debug -s
-
-Each functionality is represented by a single character. For instance,
-``i`` stands for type inference. To get the list of debuggable
-functionalities, run the command ``lambdapi check --help``.
-
-**flags** The user can set/unset some flags:
-
-::
-
-   set flag "eta_equality" on // default is off
-   set flag "print_implicits" on // default is off
-   set flag "print_contexts" on // default is off
-   set flag "print_domains" on // default is off
-   set flag "print_meta_type" on // default is off
-
-**notation for natural numbers** It is possible to use the standard
-decimal notation for natural numbers by specifying the symbols
-representing 0 and the successor function as follows:
-
-::
-
-   set builtin "0"  ≔ zero // : N
-   set builtin "+1" ≔ succ // : N → N
+   set prefix 5 "¬" ≔ neg;
 
 **infix symbols** The following code defines infix symbols for addition
 and multiplication. Both are associative to the left, and they have
-priority levels ``6`` and ``7``.
+priority levels ``6`` and ``7`` respectively.
 
 ::
 
-   set infix left 6 "+" ≔ add
-   set infix left 7 "×" ≔ mul
+   set infix left 6 "+" ≔ add;
+   set infix left 7 "×" ≔ mul;
 
 The modifier ``infix``, ``infix right`` and ``infix left`` can be used
 to specify whether the defined symbol is non-associative, associative to
@@ -386,99 +283,133 @@ the right, or associative to the left. The priority levels are floating
 point numbers, hence a priority can (almost) always be inserted between
 two different levels.
 
-**quantifier symbols** The representation of a symbol can be modified to
-make it look like a usual quantifier (such as ``∀``, ``∃`` or ``λ``).
-Symbols declared as quantifiers can be input using a “quantifier” syntax
-and their printing is changed:
+**quantifier symbols** Any symbol can be input as a quantifier (as done usually
+with symbols such as ``∀``, ``∃`` or ``λ``), provided that it
+is prefixed with a backquote `` \` ``. However, such terms will be printed as
+quantifiers only if they are declared so using the command ``set quantifier``:
 
 ::
 
-   set quantifier ∀ // : Π {a}, (T a → Prop) → Prop
-   compute ∀ {a'} (λx:T a,p) // prints ∀x:T a,p
-   compute ∀ (λx:T a, p) // prints ∀x,p
-   type ∀x,p // quantifiers can be written as such
+   set quantifier ∀; // : Π {a}, (T a → Prop) → Prop
+   compute ∀ {a'} (λx:T a,p); // prints `∀x:T a,p
+   compute ∀ (λx:T a, p); // prints `∀x,p
+   type `∀ x, p; // quantifiers can be written as such
+   type `f x, p; // works as well if f is defined
 
-**why3 tactic related builtins** In order to use external provers via
-the why3 tactic, one first has to define a number of builtin symbols as
-follows:
+**builtins** The command ``set builtin`` allows to map a “builtin“
+string to a user-defined symbol identifier. Those mappings are
+necessary for other commands or tactics. For instance, to use decimal
+numbers, one needs to map the builtins “0“ and “+1“ to some symbol
+identifiers for zero and the successor function (see hereafter); to
+use tactics on equality, one needs to define some specific builtins;
+etc.
 
-::
-
-   set builtin "P"     ≔ P     // : Prop → TYPE
-   set builtin "top"   ≔ top   // : Prop
-   set builtin "bot"   ≔ bot   // : Prop
-   set builtin "not"   ≔ not   // : Prop → Prop
-   set builtin "and"   ≔ and   // : Prop → Prop → Prop
-   set builtin "or"    ≔ or    // : Prop → Prop → Prop
-   set builtin "imp"   ≔ imp   // : Prop → Prop → Prop
-   set builtin "T"     ≔ T     // : U → TYPE
-   set builtin "eq"    ≔ eq    // : Π {a}, T a → T a → Prop
-
-**prover config**: In order to use the ``why3`` tactic, a prover should
-be set using:
+**notation for natural numbers** It is possible to use the standard
+decimal notation for natural numbers by specifying the symbols
+representing 0 and the successor function as follows:
 
 ::
 
-   set prover "Eprover"
-
-*Alt-Ergo* is set by default if the user didn’t specify a prover.
-
-The user can also specify the timeout (in seconds) of the prover:
-
-::
-
-   set prover_timeout 60
-
-The default time limit of a prover is set to 2 seconds.
-
-**prefix symbols** The following code defines a prefix symbol for
-negation.
-
-::
-
-   set prefix 5 "¬" ≔ neg
-
-**declared identifiers** The following code declares a new valid symbol,
-that can then be used in the place of a symbol or variable.
-
-::
-
-   set declared "ℕ"
-   set declared "α"
-   set declared "β"
-   set declared "γ"
-   set declared "x₁"
-   set declared "x₂"
-   set declared "x₃"
-
-**Warning:** some checks are performed upon the declaration of infix
-symbols and identifiers, but they are by no means sufficient (it is
-still possible to break the parser by defining well-chosen tokens).
-
-**equality-related builtins** In order to use tactics related to Leibniz
-equality, one first has to define a number of builtin symbols as
-follows:
-
-::
-
-   set builtin "T"     ≔ T     // : U → TYPE
-   set builtin "P"     ≔ P     // : Prop → TYPE
-   set builtin "eq"    ≔ eq    // : Π {a}, T a → T a → Prop
-   set builtin "refl"  ≔ refl  // : Π {a} (x:T a), P (x=x)
-   set builtin "eqind" ≔ eqind // : Π {a} x y, P (x = y) → Π (p:T a→Prop), P (p y) → P (p x)
+   set builtin "0"  ≔ zero; // : N
+   set builtin "+1" ≔ succ; // : N → N
 
 **unification rules** The unification engine can be guided using
 *unification rules*. Given a unification problem ``t ≡ u``, if the
 engine cannot find a solution, it will try to match the pattern
-``t ≡ u`` against the defined rules and rewrite the problem to the
-right-hand side of the matched rule. For instance, given the unification
-rule
+``t ≡ u`` against the defined rules (modulo commutativity of ≡)
+and rewrite the problem to the
+right-hand side of the matched rule. Variables of the RHS that do
+not appear in the LHS are replaced by fresh metavariables on rule application.
+
+Examples:
 
 ::
 
-   set unif_rule Bool ≡ T $t ↪ $t ≡ bool
-   set unif_rule $x + $y ≡ 0 ↪ $x ≡ 0; $y ≡ 0
+   set unif_rule Bool ≡ T $t ↪ begin $t ≡ bool end;
+   set unif_rule $x + $y ≡ 0 ↪ begin $x ≡ 0; $y ≡ 0 end;
+   set unif_rule $a → $b ≡ T $c ↪ begin $a ≡ T $a'; $b ≡ T $b'; $c ≡ arrow $a' $b' end;
 
-the unification problem ``T ?x ≡ Bool`` will be transformed into
-``?x ≡ bool``. Note that this feature is *experimental* and there is no
-sanity check performed on the rules.
+Thanks to the first unification rule, a problem ``T ?x ≡ Bool`` is
+transformed into ``?x ≡ bool``.
+
+*WARNING* This feature is experimental and there is no sanity check
+performed on the rules.
+
+``inductive``
+-------------
+
+The commands ``symbol`` and ``rules`` above are enough to define
+inductive types, their constructors, their induction
+principles/recursors and their defining rules.
+
+We however provide a command ``inductive`` for automatically
+generating the induction principles and their rules from an inductive
+type definition, assuming that the following builtins are defined:
+
+::
+   
+   ￼set builtin "Prop" ≔ ...; // : TYPE, for the type of propositions
+   ￼set builtin "P"    ≔ ...; // : Prop → TYPE, interpretation of propositions as types
+
+Currently, it only supports parametrized mutually defined dependent
+first-order data types. As usual, polymorphic types can be encoded by
+defining a type ``Set`` and a function ``τ:Set → TYPE``.
+
+An inductive type can have 0 or more constructors.
+
+The name of the induction principle is ``ind_`` followed by the name
+of the type.
+
+Example:
+
+::
+   
+   ￼inductive ℕ : TYPE ≔
+   ￼| zero: ℕ
+   ￼| succ: ℕ → ℕ;
+   
+is equivalent to:
+￼
+::
+   
+   ￼injective symbol ℕ : TYPE;
+   ￼constant  symbol zero : ℕ;
+   ￼constant  symbol succ : ℕ → ℕ;
+   ￼symbol ind_ℕ p :
+      π(p zero) → (Π x, π(p x) → π(p(succ x))) → Π x, π(p x);
+   ￼rule ind_ℕ _ $pz _ zero ↪ $pz
+   ￼with ind_ℕ $p $pz $ps (succ $n) ↪ $ps $n (ind_ℕ $p $pz $ps $n);
+
+
+For mutually defined inductive types, one needs to use the ``with``
+keyword to link all inductive types together.
+
+Inductive definitions can also be parametrized as follows:
+
+::
+   
+   (a:Set)
+   inductive T: TYPE ≔
+   | node: τ a → F a → T a
+   with F: TYPE ≔
+   | nilF: F a
+   | consF: T a → F a → F a;
+
+Note that parameters are set as implicit in the types of
+constructors. So, one has to write ``consF t l`` or ``@consF a t l``.
+
+For mutually defined inductive types, an induction principle is
+generated for each inductive type:
+
+::
+
+   assert ⊢ ind_F: Π a, Π p:T a → Prop, Π q:F a → Prop,
+     (Π x l, π(q l) → π(p (node x l))) →
+     π(q nilF) →
+     (Π t, π(p t) → Π l, π(q l) → π(q (consF t l))) →
+     Π l, π(q l);
+   assert ⊢ ind_T: Π a, Π p:T a → Prop, Π q:F a → Prop,
+     (Π x, Π l, π(q l) → π(p (node x l))) →
+     π(q nilF) →
+     (Π t, π(p t) → Π l, π(q l) → π(q (consF t l))) →
+     Π t, π(p t);

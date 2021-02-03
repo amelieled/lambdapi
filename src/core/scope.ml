@@ -37,17 +37,17 @@ let find_qid : bool -> bool -> sig_state -> env -> qident -> tbox =
     _Symb (find_sym ~prt ~prv true st qid)
 
 (** [get_root t ss] returns the symbol at the root of term [t]. *)
-let get_root : p_term -> sig_state -> sym = fun t ss ->
+let get_root : p_term -> sig_state -> Env.t -> sym = fun t ss env ->
   let rec get_root t =
     match t.elt with
-    | P_Iden(qid,_)
-    | P_BinO(_,(_,_,_,qid),_)
-    | P_UnaO((_,_,qid),_)   -> find_sym ~prt:true ~prv:true true ss qid
+    | P_Iden(qid,_)         ->
+        find_sym ~prt:true ~prv:true true ss qid
     | P_Appl(t, _)          -> get_root t
-    | P_Wrap(t)             -> get_root t
+    | P_Wrap(t)             -> get_root (Pratt.parse ss env t)
     | _                     -> assert false
   in
-  get_root t
+  (* Pratt parse to order terms correctly. *)
+  get_root (Pratt.parse ss env t)
 
 (** Representation of the different scoping modes.  Note that the constructors
     hold specific information for the given mode. *)
@@ -92,7 +92,7 @@ type mode =
           with the same name are scoped as the same variable. *)
       ; m_urhs_data : (string, tevar) Hashtbl.t }
   (** Scoping mode for unification rule right-hand sides. During  scoping, we
-      always have [m_rhs_vars_nb = m_lhs_size + length m_rhs_xvars]. *)
+      always have [m_urhs_vars_nb = m_lhs_size + length m_urhs_xvars]. *)
 
 (** [get_implicitness t] gives the specified implicitness of the parameters of
     a symbol having the (parser-level) type [t]. *)
@@ -105,17 +105,25 @@ let rec get_implicitness : p_term -> bool list = fun t ->
   | P_Wrap(t)    -> get_implicitness t
   | _            -> []
 
-(** [get_args t] decomposes the parser level term [t] into a spine [(h,args)],
-    when [h] is the term at the head of the application and [args] is the list
-    of all its arguments. Note that sugared applications (e.g., infix symbols)
-    are not expanded, so [h] may still be unsugared to an application. *)
-let get_args : p_term -> p_term * p_term list =
+(** [get_pratt_args ss env t] decomposes the parser level term [t] into a
+    spine [(h,args)], when [h] is the term at the head of the application and
+    [args] is the list of all its arguments. The function also reorders the
+    term taking infix and prefix operators into account using a Pratt
+    parser that signature state [ss] and environment [env] to determine which
+    terms are operators, and which aren't. *)
+(* NOTE this function is one of the few that use the Pratt parser, and the
+   term is converted from appl to list in [Pratt.parse], then rebuilt into
+   appl node (still by Pratt.parse), then again decomposed into a list by the
+   function. We may make [Pratt.parse] to return already a list of terms,
+   or have the application represented as a non empty list. *)
+let get_pratt_args : Sig_state.t -> Env.t -> p_term -> p_term * p_term list =
+  fun ss env t ->
   let rec get_args args t =
     match t.elt with
     | P_Appl(t,u) -> get_args (u::args) t
-    | P_Wrap(t)   -> get_args args t
+    | P_Wrap(t)   -> get_args args (Pratt.parse ss env t)
     | _           -> (t, args)
-  in get_args []
+  in get_args [] (Pratt.parse ss env t)
 
 (** [scope md ss env t] turns a parser-level term [t] into an actual term. The
     variables of the environment [env] may appear in [t], and the scoping mode
@@ -151,7 +159,7 @@ let scope : mode -> sig_state -> env -> p_term -> tbox = fun md ss env t ->
   (* Toplevel scoping function, with handling of implicit arguments. *)
   let rec scope : env -> p_term -> tbox = fun env t ->
     (* Extract the spine. *)
-    let (p_head, args) = get_args t in
+    let (p_head, args) = get_pratt_args ss env t in
     (* Check that LHS pattern variables are applied to no argument. *)
     begin
       match (p_head.elt, md) with
@@ -215,34 +223,36 @@ let scope : mode -> sig_state -> env -> p_term -> tbox = fun md ss env t ->
     | (None   , M_LHS(_)    ) -> fresh_patt md None (Env.to_tbox env)
     | ((Some({elt=P_Wild;_})|None), _           ) -> _Meta_Type env
     | (Some(a)   , _           ) -> scope env a
-  (* Scoping of a binder (abstraction or product). The environment made of the
-     variables is also returned. *)
-  and scope_binder cons env xs t =
-    let rec aux env xs =
-      match xs with
-      | []                  ->
-        begin
-          match t with
-          | Some t -> (scope env t, [])
-          | None -> (_Meta_Type env, [])
-        end
-      | ([]       ,_,_)::xs -> aux env xs
-      | (None  ::l,d,i)::xs ->
-          let v = Bindlib.new_var mkfree "_" in
-          let a = scope_domain env d in
-          let (t,env) = aux env ((l,d,i)::xs) in
-          (cons a (Bindlib.bind_var v t), Env.add v a None env)
-      | (Some x::l,d,i)::xs ->
-          let v = Bindlib.new_var mkfree x.elt in
-          let a = scope_domain env d in
-          let (t,env) =
-            aux ((x.elt,(v,a,None)) :: env) ((l,d,i) :: xs)
-          in
-          if x.elt.[0] <> '_' && not (Bindlib.occur v t) then
-            wrn x.pos "Variable [%s] could be replaced by [_]." x.elt;
-          (cons a (Bindlib.bind_var v t), Env.add v a None env)
+  (* Scoping function for binders (abstractions or produtcs). [scope_binder
+     cons env args_list t] scopes [t] in the environment [env] extended with
+     the parameters of [args_list]. For each parameter, a tbox is built using
+     [cons] (either _Abst or _Prod). *)
+  and scope_binder : (tbox -> tbinder Bindlib.box -> tbox)
+                     -> Env.t -> p_args list -> p_term option -> tbox =
+    fun cons env args_list t ->
+    let rec scope_args_list env args_list =
+      match args_list with
+      | [] -> (match t with Some t -> scope env t | None -> _Meta_Type env)
+      | (idopts,typopt,_implicit)::args_list ->
+          scope_args env idopts (scope_domain env typopt) args_list
+    and scope_args env idopts a args_list =
+      let rec aux env idopts =
+        match idopts with
+        | [] -> scope_args_list env args_list
+        | None::idopts ->
+            let v = Bindlib.new_var mkfree "_" in
+            let t = aux env idopts in
+            cons a (Bindlib.bind_var v t)
+        | Some id::idopts ->
+            let v = Bindlib.new_var mkfree id.elt in
+            let env = Env.add v a None env in
+            let t = aux env idopts in
+            if id.elt.[0] <> '_' && not (Bindlib.occur v t) then
+              wrn id.pos "Variable [%s] could be replaced by [_]." id.elt;
+            cons a (Bindlib.bind_var v t)
+      in aux env idopts
     in
-    aux env xs
+    scope_args_list env args_list
   (* Scoping function for head terms. *)
   and scope_head : env -> p_term -> tbox = fun env t ->
     match (t.elt, md) with
@@ -337,12 +347,13 @@ let scope : mode -> sig_state -> env -> p_term -> tbox = fun md ss env t ->
         in
         begin
           match id with
-          | None     when List.length env = Array.length ts    ->
-              wrn t.pos "Pattern [%a] could be replaced by [_]." Pretty.pp t;
+          | None when List.length env = Array.length ts ->
+              wrn t.pos
+                "Pattern [%a] could be replaced by [_]." Pretty.term t;
           | Some(id) when not (List.mem id.elt d.m_lhs_in_env) ->
               if List.length env = Array.length ts then
                 wrn t.pos "Pattern variable [%a] can be replaced by a \
-                           wildcard [_]." Pretty.pp t
+                           wildcard [_]." Pretty.term t
               else
                 wrn t.pos "Pattern variable [$%s] does not need to be \
                            named." id.elt
@@ -400,16 +411,16 @@ let scope : mode -> sig_state -> env -> p_term -> tbox = fun md ss env t ->
     | (P_Abst(_,_)     , M_Patt             ) ->
         fatal t.pos "Abstractions are not allowed in a pattern."
     | (P_Abst(xs,t)    , _                  ) ->
-        fst (scope_binder _Abst env xs (Some(t)))
+        scope_binder _Abst env xs (Some(t))
     | (P_Prod(_,_)     , M_Patt             ) ->
         fatal t.pos "Dependent products are not allowed in a pattern."
     | (P_Prod(xs,b)    , _                  ) ->
-        fst (scope_binder _Prod env xs (Some(b)))
+        scope_binder _Prod env xs (Some(b))
     | (P_LLet(x,xs,a,t,u), M_Term(_)        )
     | (P_LLet(x,xs,a,t,u), M_URHS(_)        )
     | (P_LLet(x,xs,a,t,u), M_RHS(_)         ) ->
-        let a = fst (scope_binder _Prod env xs a) in
-        let t = fst (scope_binder _Abst env xs (Some(t))) in
+        let a = scope_binder _Prod env xs a in
+        let t = scope_binder _Abst env xs (Some(t)) in
         let v = Bindlib.new_var mkfree x.elt in
         let u = scope (Env.add v a (Some(t)) env) u in
         if not (Bindlib.occur v u) then
@@ -426,20 +437,6 @@ let scope : mode -> sig_state -> env -> p_term -> tbox = fun md ss env t ->
           if n <= 0 then acc else unsugar_nat_lit (_Appl sym_s acc) (n-1)
         in
         unsugar_nat_lit sym_z n
-    | (P_UnaO(u,t)    , _                   ) ->
-        let (s, impl) =
-          let (_op,_,qid) = u in
-          let s = find_sym ~prt:true ~prv:true true ss qid in
-          (_Symb s, s.sym_impl)
-        in
-        add_impl env t.pos s impl [t]
-    | (P_BinO(l,b,r)  , _                   ) ->
-        let (s, impl) =
-          let (_op,_,_,qid) = b in
-          let s = find_sym ~prt:true ~prv:true true ss qid in
-          (_Symb s, s.sym_impl)
-        in
-        add_impl env t.pos s impl [l; r]
     | (P_Wrap(t)      , _                   ) -> scope env t
     | (P_Expl(_)      , _                   ) ->
         fatal t.pos "Explicit argument not allowed here."
@@ -482,8 +479,6 @@ let patt_vars : p_term -> (string * int) list * string list =
           | Some(a) -> patt_vars pvs a
         end
     | P_NLit(_)          -> acc
-    | P_UnaO(_,t)        -> patt_vars acc t
-    | P_BinO(t,_,u)      -> patt_vars (patt_vars acc t) u
     | P_Wrap(t)          -> patt_vars acc t
     | P_Expl(t)          -> patt_vars acc t
   and add_patt ((pvs, nl) as acc) id ts =
@@ -518,7 +513,7 @@ type pre_rule =
   ; pr_lhs      : term list
   (** Arguments of the LHS. *)
   ; pr_vars     : term_env Bindlib.mvar
-  (** Pattern  variables that can  appear in  the RHS. The  last [pr_xvars_nb]
+  (** Pattern variables that appear in the RHS. The last [pr_xvars_nb]
       variables do not appear in the LHS. *)
   ; pr_rhs      : tbox
   (** Body of the RHS, should only be unboxed once. *)
@@ -549,7 +544,7 @@ let scope_rule : bool -> sig_state -> p_rule -> pre_rule loc = fun ur ss r ->
   (* Scope the LHS and get the reserved index for named pattern variables. *)
   let (pr_lhs, lhs_indices, lhs_arities, lhs_names, lhs_size) =
     let mode =
-      M_LHS{ m_lhs_prv     = is_private (get_root p_lhs ss)
+      M_LHS{ m_lhs_prv     = is_private (get_root p_lhs ss [])
            ; m_lhs_indices = Hashtbl.create 7
            ; m_lhs_arities = Hashtbl.create 7
            ; m_lhs_names   = Hashtbl.create 7
@@ -641,8 +636,8 @@ let scope_pattern : sig_state -> env -> p_term -> term = fun ss env t ->
 (** [scope_rw_patt ss env t] turns a parser-level rewrite tactic specification
     [s] into an actual rewrite specification (possibly containing variables of
     [env] and using [ss] for aliasing). *)
-let scope_rw_patt : sig_state ->  env -> p_rw_patt loc -> rw_patt =
-    fun ss env s ->
+let scope_rw_patt : sig_state ->  env -> p_rw_patt -> rw_patt =
+  fun ss env s ->
   match s.elt with
   | P_rw_Term(t)               -> RW_Term(scope_pattern ss env t)
   | P_rw_InTerm(t)             -> RW_InTerm(scope_pattern ss env t)
