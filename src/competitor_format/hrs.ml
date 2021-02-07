@@ -8,7 +8,6 @@ open Lplib.Base
 open Lplib.Extra
 
 open Timed
-open! Core
 open Scoping.Terms
 
 (** [print_sym oc s] outputs the fully qualified name of [s] to [oc]. The name

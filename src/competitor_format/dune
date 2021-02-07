@@ -2,4 +2,4 @@
  (name competitor_format)
  (public_name lambdapi.competitor_format)
  (modules :standard)
- (libraries core))
+ (libraries type_checking))
