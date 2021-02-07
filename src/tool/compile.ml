@@ -22,7 +22,7 @@ let too_long = Stdlib.ref infinity
 let handle_cmd : (Path.t -> Sign.t) -> Sig_state.sig_state -> Parsing.Syntax.p_command ->
   Sig_state.sig_state * Core.Handle.proof_data option * Proof_mode.Queries.result =
  fun compile ss cmd ->
-  Print.sig_state := ss;
+  Rewriting_engine.Print.sig_state := ss;
   try
     let (tm, ss) = Extra.time (Core.Handle.handle_cmd_aux compile ss) cmd in
     if Stdlib.(tm >= !too_long) then

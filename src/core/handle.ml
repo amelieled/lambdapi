@@ -14,7 +14,7 @@ open Parsing.Syntax
 open! Proof_mode
 open! Type_checking
 open Scoping.Sig_state
-open Scoping.Print
+open Rewriting_engine.Print
 
 
 (** Logging function for command handling. *)
@@ -495,6 +495,6 @@ fun compile ss cmd ->
             in
             Sign.add_rule ss.signature Unif_rule.equiv urule;
             Tree.update_dtree Unif_rule.equiv;
-            out 3 "(hint) [%a]\n" Print.pp_rule (Unif_rule.equiv, urule); ss
+            out 3 "(hint) [%a]\n" pp_rule (Unif_rule.equiv, urule); ss
       in
       (ss, None, None)

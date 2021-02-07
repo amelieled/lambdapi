@@ -1,6 +1,6 @@
 
-open Terms
-open Env
+open Scoping.Terms
+open Scoping.Env
    
 (** [of_prod c n t] returns a tuple [(env,b)] where [b] is constructed
    from the term [t] by unbinding [n] dependent products. The free variables

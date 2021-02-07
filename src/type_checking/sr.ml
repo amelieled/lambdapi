@@ -6,7 +6,7 @@ open Timed
 open File_management.Error
 open! Scoping
 open Scoping.Terms
-open Print
+open Rewriting_engine.Print
 
 (** Logging function for typing. *)
 let log_subj = new_logger 's' "subj" "subject-reduction"
@@ -136,7 +136,7 @@ let check_rule : pre_rule File_management.Pos.loc -> rule = fun ({pos; elt} as p
     begin
       let xvars = Array.drop (Array.length vars - pr_xvars_nb) vars in
       fatal pos "Unknown pattern variables [%a]"
-        (Array.pp Print.pp_var ",") xvars
+        (Array.pp Rewriting_engine.Print.pp_var ",") xvars
     end;
   let arity = List.length lhs in
   if !log_enabled then
@@ -250,7 +250,7 @@ let check_rule : pre_rule File_management.Pos.loc -> rule = fun ({pos; elt} as p
     (* Contexts ignored: [Infer.check] is called with an empty context and
        neither [Infer.check] nor [Unif.solve] generate contexts with defined
        variables. *)
-    let eq_comm (_,t1,u1) (_,t2,u2) = Eval.eq_constr ([],t1,u1) ([],t2,u2) in
+    let eq_comm (_,t1,u1) (_,t2,u2) = Rewriting_engine.Eval.eq_constr ([],t1,u1) ([],t2,u2) in
     List.exists (eq_comm c) lhs_constrs
   in
   let cs = List.filter (fun c -> not (is_constr c)) cs in

@@ -11,9 +11,10 @@ open Lplib.Extra
 
 open Timed
 
-open Terms
-open Sig_state
-
+open! Scoping
+open Scoping.Terms
+open Scoping.Sig_state
+  
 open File_management.Error
 
 (** Logging function for printing. *)

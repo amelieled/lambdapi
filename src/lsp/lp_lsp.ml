@@ -356,7 +356,7 @@ let hover_symInfo ofmt ~id params =
       | Some (sym, Some _) ->
         !(sym.sym_type)
     in
-    let sym_type = Format.asprintf "%a" Print.pp_term sym_found in
+    let sym_type = Format.asprintf "%a" Rewriting_engine.Print.pp_term sym_found in
     let result : J.t =
       `Assoc [ "contents", `String sym_type; "range", range ] in
     let msg = LSP.mk_reply ~id ~result in

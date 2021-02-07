@@ -88,7 +88,7 @@ let string_of_goal : Proof.goal -> goal =
     Buffer.clear buf;
     res
   in
-  let open Print in
+  let open Rewriting_engine.Print in
   let env_elt (s,(_,t,_)) = s, to_string pp_term (Bindlib.unbox t) in
   let ctx_elt (x,a,_) = to_string pp_var x, to_string pp_term a in
   fun g ->
@@ -104,7 +104,7 @@ let string_of_goal : Proof.goal -> goal =
 let current_goals : proof_state -> goal list =
   fun (time, st, ps, _, _) ->
   Time.restore time;
-  Print.sig_state := st;
+  Rewriting_engine.Print.sig_state := st;
   List.map string_of_goal ps.proof_goals
 
 type command_result =

@@ -7,7 +7,7 @@ open File_management.Error
 open Scoping.Terms
 open Timed
 open! Type_checking
-open Scoping.Print
+open Rewriting_engine.Print
 
 open! Scoping
    
@@ -95,7 +95,7 @@ let translate_term : config -> cnst_table -> term ->
     | (_      , _       )                        ->
         (* If the term [p] is mapped in [tbl] then use it. *)
         try
-          let sym = List.assoc_eq (Eval.eq_modulo []) t tbl in
+          let sym = List.assoc_eq (Rewriting_engine.Eval.eq_modulo []) t tbl in
           (tbl, Why3.Term.ps_app sym [])
         with Not_found ->
           (* Otherwise generate a new constant in why3. *)

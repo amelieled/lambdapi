@@ -2,4 +2,4 @@
  (name type_checking)
  (public_name lambdapi.type_checking)
  (modules :standard)
- (libraries scoping))
+ (libraries rewriting_engine))

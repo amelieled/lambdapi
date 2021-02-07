@@ -4,7 +4,8 @@ open Timed
 open File_management.Error
 open! Scoping
 open Scoping.Terms
-open Print
+open! Rewriting_engine
+open Rewriting_engine.Print
 
 (** Logging function for typing. *)
 let log_infr = new_logger 'i' "infr" "type inference/checking"

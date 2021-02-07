@@ -5,7 +5,8 @@ open File_management.Pos
 open Parsing.Syntax
 open Scoping.Terms (* empty_problem only! *)
 open! Type_checking
-open Scoping.Print
+open Rewriting_engine.Print
+open! Rewriting_engine
 open Proof  (* proof_state option only! *)
 open! Lplib
 

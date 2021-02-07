@@ -60,7 +60,7 @@ let to_dot : Format.formatter -> sym -> unit = fun oc s ->
       match t with
       | Leaf(_,(a,_))                                                    ->
           let _, acte = Bindlib.unmbind a in
-          out "@ %d [label=\"%a\"];" !node_count Scoping.Print.pp_term acte;
+          out "@ %d [label=\"%a\"];" !node_count Rewriting_engine.Print.pp_term acte;
           out "@ %d -- %d [label=<%a>];" father_l !node_count pp_dotterm swon
       | Node({swap; children; store; abstraction=abs; default; product}) ->
           let tag = !node_count in

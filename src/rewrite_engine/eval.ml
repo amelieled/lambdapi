@@ -5,8 +5,9 @@ open Lplib.Extra
 
 open Timed
 open File_management.Error
-open Terms
-open Basics
+open! Scoping
+open Scoping.Terms
+open Scoping.Basics
 open Print
 
 (** The head-structure of a term t is:

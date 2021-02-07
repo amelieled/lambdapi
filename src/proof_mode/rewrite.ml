@@ -8,7 +8,8 @@ open Scoping.Terms
 open! Scoping
 open Scoping.Basics
 open File_management.Error
-open Scoping.Print
+open Rewriting_engine.Print
+open! Rewriting_engine
 open Proof
 open! Type_checking
    

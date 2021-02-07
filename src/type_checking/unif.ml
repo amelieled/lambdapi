@@ -9,8 +9,9 @@ open! Scoping
 open Scoping.Terms
 open Scoping.Basics
 (*open Scoping.Env*)
-open Print
-
+open Rewriting_engine.Print
+open! Rewriting_engine
+  
 (** Logging function for unification. *)
 let log_unif = new_logger 'u' "unif" "unification"
 let log_unif = log_unif.logger
