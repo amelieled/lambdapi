@@ -4,7 +4,7 @@ open! Lplib
 open Lplib.Extra
 
 open Cmdliner
-open Core
+open Tool
 open File_management.Files
 open File_management.Error
 open Version
@@ -23,7 +23,7 @@ let check_cmd : Cliconf.t -> int option -> bool -> string list -> unit =
     (* We save time to run each file in the same environment. *)
     let time = Time.save () in
     let handle file =
-      Debug_console.reset_default ();
+      Compile.reset_default ();
       Time.restore time;
       let sign =
         match timeout with

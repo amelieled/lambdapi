@@ -1,7 +1,7 @@
 open! Lplib
 
 open Timed
-open Core
+open Tool
 open Parsing
 open File_management.Error
 open File_management.Files
@@ -122,7 +122,7 @@ let set_initial_time : unit -> unit = fun _ ->
   Stdlib.(t0 := Time.save ())
 
 let initial_state : file_path -> state = fun fname ->
-  Debug_console.reset_default ();
+  Compile.reset_default ();
   Time.restore Stdlib.(!t0);
   File_management.Package.apply_config fname;
   let mp = File_management.Files.file_to_module fname in
@@ -135,7 +135,7 @@ let handle_command : state -> Command.t -> command_result =
     fun (st,ss) cmd ->
   Time.restore st;
   try
-    let (ss, pst, qres) = Handle.handle_cmd (Compile.compile false) ss cmd in
+    let (ss, pst, qres) = Compile.handle_cmd (Compile.compile false) ss cmd in
     let t = Time.save () in
     match pst with
     | None       -> Cmd_OK ((t, ss), qres)

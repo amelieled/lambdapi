@@ -3,7 +3,6 @@
 
 open Lplib.Extra
 
-open Core (* Lambdapi core *)
 open Scoping
    
 let _ =
@@ -13,7 +12,7 @@ let _ =
   | Some(f) -> File_management.Package.apply_config f
 
 let compile (fname: string): Sign.t =
-  Compile.compile false (File_management.Files.file_to_module fname)
+  Tool.Compile.compile false (File_management.Files.file_to_module fname)
 
 let bool_file = "OK/bool.lp"
 let bool_sign = compile bool_file
@@ -43,7 +42,7 @@ let test_dtree () =
       in
       let buf = Buffer.create 16 in
       let fmt = Format.formatter_of_buffer buf in
-      Tree_graphviz.to_dot fmt sym;
+      Tool.Tree_graphviz.to_dot fmt sym;
       Alcotest.(check bool) "bool" (Buffer.contents buf <> "") true
   | _ -> assert false
 
@@ -54,7 +53,7 @@ let test_dtree_ghost () =
   let sym = fst (StrMap.find "#equiv" Timed.(!(Sign.ghost_sign.sign_symbols))) in
   let buf = Buffer.create 16 in
   let fmt = Format.formatter_of_buffer buf in
-  Tree_graphviz.to_dot fmt sym;
+  Tool.Tree_graphviz.to_dot fmt sym;
   Alcotest.(check bool) "bool" (Buffer.contents buf <> "") true
 
 let _ =

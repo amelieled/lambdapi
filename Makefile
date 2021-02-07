@@ -33,7 +33,7 @@ real_tests: bin
 	@dune exec -- tests/dtrees.sh
 
 .PHONY: sanity_check
-sanity_check: tools/sanity_check.sh
+sanity_check: dev/sanity_check.sh
 	@./$<
 
 #### Library tests ###########################################################

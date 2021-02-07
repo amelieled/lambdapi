@@ -5,22 +5,7 @@ open Lplib.Extra
 
 open File_management.Error
 
-(** [reset_default ()] resets the verbosity level and the state of the loggers
-    to their default value (configurable by the user with command line flags).
-    The boolean flags are also reset to their default values. *)
-let reset_default : unit -> unit = fun () ->
-  (* Reset verbosity level. *)
-  verbose := Stdlib.(!default_verbose);
-  (* Reset debugging flags. *)
-  log_enabled := false;
-  let reset l =
-    let v = String.contains Stdlib.(!default_loggers) l.logger_key in
-    l.logger_enabled := v; if v then log_enabled := true;
-  in
-  List.iter reset Stdlib.(!loggers);
-  (* Reset flags to their default values. *)
-  let reset _ (default, r) = r := default in
-  StrMap.iter reset Stdlib.(!boolean_flags)
+
 
 (** Module to manipulate imperative state of the typechecker. *)
 module State = struct

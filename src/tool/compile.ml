@@ -5,11 +5,37 @@ open! Lplib
 open Timed
 open! Scoping
 open Scoping.Sign
-open Debug_console
 open! File_management
 open File_management.Error
 open File_management.Files
 
+open! Core.Debug_console
+   
+(** [too_long] indicates the duration after which a warning should be given to
+    indicate commands that take too long to execute. *)
+let too_long = Stdlib.ref infinity
+
+(** [handle_cmd compile ss cmd] adds to the previous [handle_cmd] some
+    exception handling. In particular, the position of [cmd] is used on errors
+    that lack a specific position. All exceptions except [Timeout] and [Fatal]
+    are captured, although they should not occur. *)
+let handle_cmd : (Path.t -> Sign.t) -> Sig_state.sig_state -> Parsing.Syntax.p_command ->
+  Sig_state.sig_state * Core.Handle.proof_data option * Proof_mode.Queries.result =
+ fun compile ss cmd ->
+  Print.sig_state := ss;
+  try
+    let (tm, ss) = Extra.time (Core.Handle.handle_cmd_aux compile ss) cmd in
+    if Stdlib.(tm >= !too_long) then
+      wrn cmd.pos "It took %.2f seconds to handle the command." tm;
+    ss
+  with
+  | Extra.Timeout                as e -> raise e
+  | Fatal(Some(Some(_)),_) as e -> raise e
+  | Fatal(None         ,m)      -> fatal cmd.pos "Error on command.\n%s" m
+  | Fatal(Some(None)   ,m)      -> fatal cmd.pos "Error on command.\n%s" m
+  | e                           ->
+      fatal cmd.pos "Uncaught exception [%s]." (Printexc.to_string e)
+   
 (** [gen_obj] indicates whether we should generate object files when compiling
     source files. The default behaviour is not te generate them. *)
 let gen_obj = Stdlib.ref false
@@ -64,7 +90,7 @@ let rec compile : bool -> Path.t -> Sign.t = fun force path ->
         Terms.Meta.reset_key_counter ();
         (* We provide the compilation function to the handle commands, so that
            "require" is able to compile files. *)
-        let (ss, p, _) = Handle.handle_cmd (compile false) ss c in
+        let (ss, p, _) = handle_cmd (compile false) ss c in
         match p with
         | None       -> ss
         | Some(data) ->
@@ -143,3 +169,20 @@ end = struct
 
   let compile_file ?lm ?st = pure_apply_cfg ?lm ?st compile_file
 end
+
+(** [reset_default ()] resets the verbosity level and the state of the loggers
+    to their default value (configurable by the user with command line flags).
+    The boolean flags are also reset to their default values. *)
+let reset_default : unit -> unit = fun () ->
+  (* Reset verbosity level. *)
+  verbose := Stdlib.(!default_verbose);
+  (* Reset debugging flags. *)
+  log_enabled := false;
+  let reset l =
+    let v = String.contains Stdlib.(!default_loggers) l.logger_key in
+    l.logger_enabled := v; if v then log_enabled := true;
+  in
+  List.iter reset Stdlib.(!loggers);
+  (* Reset flags to their default values. *)
+  let reset _ (default, r) = r := default in
+  Extra.StrMap.iter reset Stdlib.(!boolean_flags)

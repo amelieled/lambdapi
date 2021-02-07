@@ -188,15 +188,15 @@ type proof_data =
   ; pdata_expo     : Terms.expo (** Allowed exposition of symbols in the proof
                                    script. *) }
 
-(** [handle_cmd compile ss cmd] tries to handle the command [cmd] with [ss] as
-    the signature state and [compile] as the main compilation function
+(** [handle_cmd_aux compile ss cmd] tries to handle the command [cmd] with [ss]
+    as the signature state and [compile] as the main compilation function
     processing lambdapi modules (it is passed as argument to avoid cyclic
     dependencies). On success, an updated signature state is returned.  When
     [cmd] leads to entering the proof mode,  a [proof_data] is also  returned.
     This structure contains the list of the tactics to be executed, as well as
     the initial state of the proof.  The checking of the proof is then handled
     separately. Note that [Fatal] is raised in case of an error. *)
-let handle_cmd : (Path.t -> Sign.t) -> sig_state -> p_command ->
+let handle_cmd_aux : (Path.t -> Sign.t) -> sig_state -> p_command ->
   sig_state * proof_data option * Queries.result =
 fun compile ss cmd ->
   if !log_enabled then log_hndl (blu "%a") Parsing.Pretty.command cmd;
@@ -498,29 +498,3 @@ fun compile ss cmd ->
             out 3 "(hint) [%a]\n" Print.pp_rule (Unif_rule.equiv, urule); ss
       in
       (ss, None, None)
-
-
-(** [too_long] indicates the duration after which a warning should be given to
-    indicate commands that take too long to execute. *)
-let too_long = Stdlib.ref infinity
-
-(** [handle_cmd compile ss cmd] adds to the previous [handle_cmd] some
-    exception handling. In particular, the position of [cmd] is used on errors
-    that lack a specific position. All exceptions except [Timeout] and [Fatal]
-    are captured, although they should not occur. *)
-let handle_cmd : (Path.t -> Sign.t) -> sig_state -> p_command ->
-  sig_state * proof_data option * Queries.result =
- fun compile ss cmd ->
-  Print.sig_state := ss;
-  try
-    let (tm, ss) = time (handle_cmd compile ss) cmd in
-    if Stdlib.(tm >= !too_long) then
-      wrn cmd.pos "It took %.2f seconds to handle the command." tm;
-    ss
-  with
-  | Timeout                as e -> raise e
-  | Fatal(Some(Some(_)),_) as e -> raise e
-  | Fatal(None         ,m)      -> fatal cmd.pos "Error on command.\n%s" m
-  | Fatal(Some(None)   ,m)      -> fatal cmd.pos "Error on command.\n%s" m
-  | e                           ->
-      fatal cmd.pos "Uncaught exception [%s]." (Printexc.to_string e)
