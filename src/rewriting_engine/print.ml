@@ -11,9 +11,9 @@ open Lplib.Extra
 
 open Timed
 
-open! Scoping
-open Scoping.Terms
-open Scoping.Sig_state
+open! Data_structure
+open Data_structure.Terms
+open Data_structure.Sig_state
   
 open File_management.Error
 

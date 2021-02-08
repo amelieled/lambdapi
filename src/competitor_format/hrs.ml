@@ -8,7 +8,7 @@ open Lplib.Base
 open Lplib.Extra
 
 open Timed
-open Scoping.Terms
+open Data_structure.Terms
 
 (** [print_sym oc s] outputs the fully qualified name of [s] to [oc]. The name
     is prefixed by ["c_"], and modules are separated with ["_"], not ["."]. *)
@@ -61,7 +61,7 @@ let print_rule : Format.formatter -> term -> term -> unit =
         Stdlib.(names := StrSet.add (Bindlib.name_of x) !names)
       | _           -> ()
     in
-    Scoping.Basics.iter fn t;
+    Data_structure.Basics.iter fn t;
     Stdlib.(!names)
   in
   let names = add_var_names StrSet.empty lhs in
@@ -79,22 +79,22 @@ let print_rule : Format.formatter -> term -> term -> unit =
 (** [print_sym_rule oc s r] outputs the rule declaration corresponding [r] (on
    the symbol [s]), to the output channel [oc]. *)
 let print_sym_rule : Format.formatter -> sym -> rule -> unit = fun oc s r ->
-  let lhs = Scoping.Basics.add_args (Symb s) r.lhs in
-  let rhs = Scoping.Basics.term_of_rhs r in
+  let lhs = Data_structure.Basics.add_args (Symb s) r.lhs in
+  let rhs = Data_structure.Basics.term_of_rhs r in
   print_rule oc lhs rhs
 
 (** [to_HRS oc sign] outputs a TPDB representation of the rewriting system of
     the signature [sign] to the output channel [oc]. *)
-let to_HRS : Format.formatter -> Scoping.Sign.t -> unit = fun oc sign ->
+let to_HRS : Format.formatter -> Data_structure.Sign.t -> unit = fun oc sign ->
   (* Get all the dependencies (every needed symbols and rewriting rules). *)
-  let deps = Scoping.Sign.dependencies sign in
+  let deps = Data_structure.Sign.dependencies sign in
   (* Function to iterate over every symbols. *)
   let iter_symbols : (sym -> unit) -> unit = fun fn ->
     let not_on_ghosts _ (s, _) =
       if not (Type_checking.Unif_rule.is_ghost s) then fn s
     in
     let iter_symbols sign =
-      StrMap.iter not_on_ghosts Scoping.Sign.(!(sign.sign_symbols))
+      StrMap.iter not_on_ghosts Data_structure.Sign.(!(sign.sign_symbols))
     in
     List.iter (fun (_, sign) -> iter_symbols sign) deps
   in

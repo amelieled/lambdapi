@@ -3,4 +3,4 @@
  (public_name lambdapi.core)
  (synopsis "LambdaPi interactive theorem prover [core]")
  (modules :standard)
- (libraries unix proof_mode))
+ (libraries proof_mode))

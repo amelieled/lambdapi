@@ -4,8 +4,8 @@ open! Lplib
 open Lplib.Base
 
 open Timed
-open Scoping.Terms
-open! Scoping
+open Data_structure.Terms
+open! Data_structure
   
 open! Type_checking
 open Rewriting_engine.Print
@@ -44,7 +44,7 @@ module Goal = struct
   let env : goal -> Env.t = fun g ->
     match g with
     | Unif (c,_,_) ->
-        let t, n = Scoping.Ctxt.to_prod c Type in fst (Ctxt_for_eval.of_prod c n t)
+        let t, n = Data_structure.Ctxt.to_prod c Type in fst (Ctxt_for_eval.of_prod c n t)
     | Typ gt -> gt.goal_hyps
 
   (** [of_meta m] creates a goal from the meta [m]. *)
@@ -66,7 +66,7 @@ module Goal = struct
     match g, g' with
     | Typ gt, Typ gt' -> (* Smaller (= older) metas are put first. *)
         Meta.compare gt.goal_meta gt'.goal_meta
-    | Unif c, Unif c' -> Scoping.Basics.cmp_constr c c'
+    | Unif c, Unif c' -> Data_structure.Basics.cmp_constr c c'
     | Unif _, Typ _ -> 1
     | Typ _, Unif _ -> -1
 

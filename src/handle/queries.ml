@@ -3,14 +3,15 @@
 open File_management.Error
 open File_management.Pos
 open Parsing.Syntax
-open Scoping.Terms (* empty_problem only! *)
+open Data_structure.Terms (* empty_problem only! *)
 open! Type_checking
 open Rewriting_engine.Print
 open! Rewriting_engine
-open Proof  (* proof_state option only! *)
+open Proof_mode.Proof (* proof_state option only! *)
 open! Lplib
 
 open Scoping
+open Data_structure
 
 (** Result of query displayed on hover in the editor*)
 type result = string option
@@ -20,7 +21,7 @@ let handle_query : Sig_state.t -> proof_state option -> p_query -> result =
   fun ss ps q ->
   match q.elt with
   | P_query_assert(must_fail, asrt) ->
-      let env = Proof.focus_env ps in
+      let env = Proof_mode.Proof.focus_env ps in
       let ctxt = Env.to_ctxt env in
       let scope = Scope.scope_term Public ss env in
       begin
@@ -61,7 +62,7 @@ let handle_query : Sig_state.t -> proof_state option -> p_query -> result =
       end;
       None
   | P_query_infer(pt, cfg) ->
-      let env = Proof.focus_env ps in
+      let env = Proof_mode.Proof.focus_env ps in
       let ctxt = Env.to_ctxt env in
       let scope = Scope.scope_term Public ss env in
       let t = scope pt in
@@ -70,7 +71,7 @@ let handle_query : Sig_state.t -> proof_state option -> p_query -> result =
       out 1 "(infr) %a : %a\n" pp_term t pp_term res;
       Some (Format.asprintf "%a : %a" pp_term t pp_term res)
   | P_query_normalize(pt, cfg) ->
-      let env = Proof.focus_env ps in
+      let env = Proof_mode.Proof.focus_env ps in
       let ctxt = Env.to_ctxt env in
       let scope = Scope.scope_term Public ss env in
       let t = scope pt in
@@ -81,8 +82,8 @@ let handle_query : Sig_state.t -> proof_state option -> p_query -> result =
   | P_query_print(None) ->
       (match ps with
        | None -> fatal q.pos "Not in a proof."
-       | Some ps -> out 1 "%a" Proof.pp_goals ps;
-                    Some (Format.asprintf "%a" Proof.pp_goals ps))
+       | Some ps -> out 1 "%a" Proof_mode.Proof.pp_goals ps;
+                    Some (Format.asprintf "%a" Proof_mode.Proof.pp_goals ps))
   | P_query_print(Some qid) ->
       let sym = Sig_state.find_sym ~prt:true ~prv:true false ss qid in
       let open Timed in

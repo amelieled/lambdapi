@@ -8,7 +8,7 @@ open Tool
 open File_management.Files
 open File_management.Error
 open Version
-open Scoping
+open Data_structure
 
 (* NOTE only standard [Stdlib] references here. *)
 

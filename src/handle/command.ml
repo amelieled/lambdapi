@@ -5,17 +5,19 @@ open Lplib.Extra
 
 open Timed
 open File_management.Error
-open! Scoping
-open Scoping.Terms
-open Scoping.Sign
+open! Data_structure
+open Data_structure.Terms
+open Data_structure.Sign
 open File_management.Pos
 open File_management.Files
 open Parsing.Syntax
 open! Proof_mode
 open! Type_checking
-open Scoping.Sig_state
+open Data_structure.Sig_state
 open Rewriting_engine.Print
 
+open! Scoping
+open! Core
 
 (** Logging function for command handling. *)
 let log_hndl = new_logger 'h' "hndl" "command handling"

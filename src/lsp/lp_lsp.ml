@@ -13,7 +13,7 @@
 open! Lplib
 open Lplib.Extra
 
-open Scoping
+open Data_structure
 
 module F = Format
 module J = Yojson.Basic

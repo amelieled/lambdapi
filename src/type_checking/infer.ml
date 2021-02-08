@@ -2,8 +2,8 @@
 
 open Timed
 open File_management.Error
-open! Scoping
-open Scoping.Terms
+open! Data_structure
+open Data_structure.Terms
 open! Rewriting_engine
 open Rewriting_engine.Print
 

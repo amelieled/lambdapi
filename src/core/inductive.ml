@@ -13,7 +13,7 @@ open! Lplib
 open Timed
 open File_management.Pos
 open File_management.Error
-open Scoping.Terms
+open Data_structure.Terms
 open Rewriting_engine.Print
 open Parsing.Syntax
 
@@ -31,8 +31,8 @@ type config =
                         Interpretation of propositions as types. *) }
 
 (** [get_config ss pos] build the configuration using [ss]. *)
-let get_config : Scoping.Sig_state.t -> File_management.Pos.popt -> config = fun ss pos ->
-  let builtin = Scoping.Builtin.get ss pos in
+let get_config : Data_structure.Sig_state.t -> File_management.Pos.popt -> config = fun ss pos ->
+  let builtin = Data_structure.Builtin.get ss pos in
   { symb_Prop = builtin "Prop"
   ; symb_prf  = builtin "P" }
 
@@ -43,10 +43,10 @@ let get_config : Scoping.Sig_state.t -> File_management.Pos.popt -> config = fun
 let gen_ind_typ_codom : popt -> sym -> (tbox list -> tbox) -> string -> tbox =
   fun pos ind_sym codom s ->
   let rec aux : tvar list -> term -> tbox = fun xs a ->
-    match Scoping.Basics.get_args a with
+    match Data_structure.Basics.get_args a with
     | (Type, _) -> codom (List.rev_map _Vari xs)
     | (Prod(a,b), _) ->
-        let (x,b) = Scoping.Basics.unbind_name b s in
+        let (x,b) = Data_structure.Basics.unbind_name b s in
         _Prod (lift a) (Bindlib.bind_var x (aux (x::xs) b))
     | _ -> fatal pos "The type of %a is not supported" pp_symbol ind_sym
   in aux [] !(ind_sym.sym_type)
@@ -171,7 +171,7 @@ let fold_cons_type
 
     : 'c =
   let rec fold : 'var list -> 'a -> term -> 'c = fun xs acc t ->
-    match Scoping.Basics.get_args t with
+    match Data_structure.Basics.get_args t with
     | (Symb(s), ts) ->
         if s == ind_sym then
           let pred_var,_,_ = List.assq ind_sym ind_pred_map in
@@ -179,10 +179,10 @@ let fold_cons_type
         else fatal pos "%a is not a constructor of %a"
                pp_symbol cons_sym pp_symbol ind_sym
     | (Prod(t,u), _) ->
-       let (x,u) = Scoping.Basics.unbind_name u var_prefix in
+       let (x,u) = Data_structure.Basics.unbind_name u var_prefix in
        let x = inj_var xs x in
        begin
-         match Scoping.Basics.get_args t with
+         match Data_structure.Basics.get_args t with
          | (Symb(s), ts) ->
              begin
                match List.assq_opt s ind_pred_map with
@@ -205,7 +205,7 @@ let fold_cons_type
    instance, with [inductive T:TYPE := c: T->T->T], we get [ind_T: Πp:T->Prop,
    (Πx0:T, π(p x0)-> Πx1:T, π(p x1)-> π(p (c x0 x1)) -> Πx:T, π(p x)]. *)
 let gen_rec_types :
-      config -> Scoping.Sig_state.t -> popt -> inductive -> ind_pred_map -> string
+      config -> Data_structure.Sig_state.t -> popt -> inductive -> ind_pred_map -> string
       -> term list =
   fun c _ pos ind_list ind_pred_map var_prefix ->
 

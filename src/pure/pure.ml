@@ -9,7 +9,8 @@ open File_management.Files
 open! File_management
 open! Type_checking
 open! Proof_mode
-open! Scoping
+open! Data_structure
+open! Handle
 
 (** Representation of a single command (abstract). *)
 module Command = struct
@@ -150,7 +151,7 @@ let handle_tactic : proof_state -> Tactic.t -> tactic_result =
   fun s t ->
   let (_, ss, p, finalize, e) = s in
   try
-    let p, qres = Proof_mode.Tactics.handle_tactic ss e p t in
+    let p, qres = Tactics.handle_tactic ss e p t in
     Tac_OK((Time.save (), ss, p, finalize, e), qres)
   with Fatal(p,m) -> Tac_Error(p,m)
 

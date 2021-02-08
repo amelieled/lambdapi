@@ -3,13 +3,14 @@
 open! Lplib
 
 open Timed
-open! Scoping
-open Scoping.Sign
+open! Data_structure
+open Data_structure.Sign
 open! File_management
 open File_management.Error
 open File_management.Files
 
 open! Core.Debug_console
+open! Handle
    
 (** [too_long] indicates the duration after which a warning should be given to
     indicate commands that take too long to execute. *)
@@ -20,11 +21,11 @@ let too_long = Stdlib.ref infinity
     that lack a specific position. All exceptions except [Timeout] and [Fatal]
     are captured, although they should not occur. *)
 let handle_cmd : (Path.t -> Sign.t) -> Sig_state.sig_state -> Parsing.Syntax.p_command ->
-  Sig_state.sig_state * Core.Handle.proof_data option * Proof_mode.Queries.result =
+  Sig_state.sig_state * Command.proof_data option * Queries.result =
  fun compile ss cmd ->
   Rewriting_engine.Print.sig_state := ss;
   try
-    let (tm, ss) = Extra.time (Core.Handle.handle_cmd_aux compile ss) cmd in
+    let (tm, ss) = Extra.time (Command.handle_cmd_aux compile ss) cmd in
     if Stdlib.(tm >= !too_long) then
       wrn cmd.pos "It took %.2f seconds to handle the command." tm;
     ss
@@ -81,8 +82,8 @@ let rec compile : bool -> Path.t -> Sign.t = fun force path ->
       let src = src () in
       out 2 "Loading %s%s ...\n%!" src forced;
       loading := path :: !loading;
-      let sign = Scoping.Sig_state.create_sign path in
-      let sig_st = Stdlib.ref (Scoping.Sig_state.of_sign sign) in
+      let sign = Data_structure.Sig_state.create_sign path in
+      let sig_st = Stdlib.ref (Data_structure.Sig_state.of_sign sign) in
       (* [sign] is added to [loaded] before processing the commands so that it
          is possible to qualify the symbols of the current modules. *)
       loaded := PathMap.add path sign !loaded;
@@ -98,7 +99,7 @@ let rec compile : bool -> Path.t -> Sign.t = fun force path ->
             let e = data.pdata_expo in
             let st =
               List.fold_left
-                (fun st tac -> fst (Proof_mode.Tactics.handle_tactic ss e st tac))
+                (fun st tac -> fst (Tactics.handle_tactic ss e st tac))
                 st ts
             in
             data.pdata_finalize ss st

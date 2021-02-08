@@ -1,8 +1,8 @@
 (** Symbols and signature for unification rules. *)
 
-open Scoping.Terms
-open Scoping.Sign
-open! Scoping
+open Data_structure.Terms
+open Data_structure.Sign
+open! Data_structure
    
 (** Symbol representing an atomic unification problem. The term [equiv t
     u] represents [t ≡ u]. The left-hand side of a unification rule is

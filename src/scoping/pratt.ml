@@ -5,7 +5,8 @@
     @see <https://forge.tedomum.net/koizel/pratter> *)
 
 open Parsing.Syntax
-
+open! Data_structure
+   
 module Pratt : sig
   val parse : Sig_state.t -> Env.t -> p_term -> p_term
   (** [parse ss env t] Pratt parses term [t], unsugaring infix operators and

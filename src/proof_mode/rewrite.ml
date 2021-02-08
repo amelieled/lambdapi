@@ -4,9 +4,9 @@ open! Lplib
   
 open Timed
 open File_management.Pos
-open Scoping.Terms
-open! Scoping
-open Scoping.Basics
+open Data_structure.Terms
+open! Data_structure
+open Data_structure.Basics
 open File_management.Error
 open Rewriting_engine.Print
 open! Rewriting_engine

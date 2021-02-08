@@ -8,8 +8,8 @@ open Lplib.Base
 open Lplib.Extra
 
 open Timed
-open! Scoping (* Basics *)
-open Scoping.Terms
+open! Data_structure (* Basics *)
+open Data_structure.Terms
 
 (** [print_sym oc s] outputs the fully qualified name of [s] to [oc]. Modules
     are separated with ["."]. *)

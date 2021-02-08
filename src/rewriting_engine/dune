@@ -2,4 +2,4 @@
  (name rewriting_engine)
  (public_name lambdapi.rewriting_engine)
  (modules :standard)
- (libraries scoping))
+ (libraries data_structure))

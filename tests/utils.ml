@@ -3,7 +3,7 @@
 
 open Lplib.Extra
 
-open Scoping
+open Data_structure
    
 let _ =
   File_management.Files.set_lib_root None;

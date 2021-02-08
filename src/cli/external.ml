@@ -24,7 +24,7 @@ let log_xtrn = log_xtrn.logger
     output.  The exception [Fatal] may be raised if [cmd] exhibits a different
     behavior. The name [prop] is used to refer to the checked property when an
     error message is displayed. *)
-let run : string -> Scoping.Sign.t pp -> string -> Scoping.Sign.t -> bool option =
+let run : string -> Data_structure.Sign.t pp -> string -> Data_structure.Sign.t -> bool option =
     fun prop pp cmd sign ->
   (* Run the command. *)
   if !log_enabled then log_xtrn "Running %s command [%s]" prop cmd;

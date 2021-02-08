@@ -5,11 +5,13 @@ open Lplib.Extra
 
 open File_management.Error
 open File_management.Pos
-open Parsing.Syntax
-open Terms
 
-open Env
-open Sig_state
+open Parsing.Syntax
+
+open! Data_structure
+open Data_structure.Terms
+open Data_structure.Env
+open Data_structure.Sig_state
 
 (** Logging function for term scoping. *)
 let log_scop = new_logger 'o' "scop" "term scoping"

@@ -4,12 +4,12 @@ open! Lplib
 open Lplib.Extra
 
 open File_management.Error
-open Scoping.Terms
+open Data_structure.Terms
 open Timed
 open! Type_checking
 open Rewriting_engine.Print
 
-open! Scoping
+open! Data_structure
    
 (** Logging function for external prover calling with Why3. *)
 let log_why3 = new_logger 'w' "why3" "why3 provers"
@@ -72,7 +72,7 @@ let new_axiom_name : unit -> string =
 let translate_term : config -> cnst_table -> term ->
                        (cnst_table * Why3.Term.term) option = fun cfg tbl t ->
   let rec translate_prop tbl t =
-    match Scoping.Basics.get_args t with
+    match Data_structure.Basics.get_args t with
     | (Symb(s), [t1; t2]) when s == cfg.symb_and ->
         let (tbl, t1) = translate_prop tbl t1 in
         let (tbl, t2) = translate_prop tbl t2 in
@@ -102,7 +102,7 @@ let translate_term : config -> cnst_table -> term ->
           let sym = Why3.Term.create_psymbol (Why3.Ident.id_fresh "P") [] in
           ((t, sym)::tbl, Why3.Term.ps_app sym [])
   in
-  match Scoping.Basics.get_args t with
+  match Data_structure.Basics.get_args t with
   | (Symb(s), [t]) when s == cfg.symb_P -> Some (translate_prop tbl t)
   | _                                   -> None
 
@@ -197,11 +197,11 @@ let handle :
   let axiom_name = new_axiom_name () in
   (* Add the axiom to the current signature. *)
   let a =
-    Scoping.Sign.add_symbol ss.signature Privat Const Eager
+    Data_structure.Sign.add_symbol ss.signature Privat Const Eager
       (File_management.Pos.none axiom_name) !(m.meta_type) []
   in
   if !log_enabled then log_why3 "axiom [%s] created" axiom_name;
   (* Return the variable terms of each item in the context. *)
   let terms = List.rev_map (fun (_, (x, _, _)) -> Vari x) hyps in
   (* Apply the instance of the axiom with context. *)
-  Scoping.Basics.add_args (Symb a) terms
+  Data_structure.Basics.add_args (Symb a) terms
