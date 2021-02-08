@@ -9,4 +9,4 @@
  (name lambdapi)
  (public_name lambdapi)
  (modules :standard)
- (libraries cmdliner tool lambdapi.lsp competitor_format))
+ (libraries cmdliner lambdapi.lsp competitor_format))

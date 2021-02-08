@@ -20,7 +20,6 @@ open Data_structure.Sig_state
 open Rewriting_engine.Print
 
 open! Scoping
-open! Core
 
 (** Logging function for command handling. *)
 let log_hndl = new_logger 'h' "hndl" "command handling"

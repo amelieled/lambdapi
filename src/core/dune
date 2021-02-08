@@ -1,6 +1,0 @@
-(library
- (name core)
- (public_name lambdapi.core)
- (synopsis "LambdaPi interactive theorem prover [core]")
- (modules :standard)
- (libraries proof_mode))

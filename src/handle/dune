@@ -2,4 +2,4 @@
  (name handle)
  (public_name lambdapi.handle)
  (modules :standard)
- (libraries unix data_structure scoping proof_mode core))
+ (libraries unix data_structure scoping proof_mode))

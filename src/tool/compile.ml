@@ -9,8 +9,8 @@ open! File_management
 open File_management.Error
 open File_management.Files
 
-open! Core.Debug_console
 open! Handle
+open Debug_console
    
 (** [too_long] indicates the duration after which a warning should be given to
     indicate commands that take too long to execute. *)
