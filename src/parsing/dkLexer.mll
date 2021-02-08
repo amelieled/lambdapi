@@ -2,10 +2,11 @@
 open File_management.Error
 open Lexing
 open File_management.Pos
-
+open File_management.Type
+   
 let filename = Stdlib.ref ""
 
-let to_module_path : string -> Syntax.p_module_path = fun mp ->
+let to_module_path : string -> p_module_path = fun mp ->
   List.map (fun s -> (s, false)) (String.split_on_char '.' mp)
 
 let make_pos : Lexing.position * Lexing.position -> 'a -> 'a loc =
@@ -23,9 +24,9 @@ type token =
   (* Identifiers and wildcard. *)
   | WILD
   | ID      of string
-  | QID     of (Syntax.p_module_path * string)
+  | QID     of (p_module_path * string)
   (* Commands. *)
-  | REQUIRE of Syntax.p_module_path
+  | REQUIRE of p_module_path
   | EVAL
   | INFER
   | ASSERT  of bool

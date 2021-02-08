@@ -2,4 +2,4 @@
  (name file_management)
  (public_name lambdapi.file_management)
  (modules :standard)
- (libraries timed lplib))
+ (libraries timed pratter lplib))

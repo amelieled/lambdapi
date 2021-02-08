@@ -8,6 +8,7 @@
 
 open! Lplib
 open File_management.Pos
+open File_management.Type
 
 (** [parser_fatal loc fmt] is a wrapper for [Console.fatal] that enforces
     that the error has an attached source code position. *)
@@ -73,9 +74,9 @@ end
     escaped (with [{| |}]). We use [parse_ident] of menhir parser because
     exposing [parse_qident] caused an end of stream conflict. *)
 let parse_qident : string ->
-  (Syntax.p_module_path * string, int * popt) result =
+  (p_module_path * string, int * popt) result =
   fun s ->
-  let parse_ident (s: string): (Syntax.ident * bool, popt) result =
+  let parse_ident (s: string): (ident * bool, popt) result =
     let parse =
       MenhirLib.Convert.Simplified.traditional2revised LpParser.ident
     in

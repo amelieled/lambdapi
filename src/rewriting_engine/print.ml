@@ -36,23 +36,6 @@ let print_meta_type : bool ref = File_management.Error.register_flag "print_meta
 (** Flag controlling the printing of the context in unification. *)
 let print_contexts : bool ref = File_management.Error.register_flag "print_contexts" false
 
-let pp_prop : prop pp = fun oc p ->
-  match p with
-  | Defin -> ()
-  | Const -> Format.fprintf oc "constant "
-  | Injec -> Format.fprintf oc "injective "
-
-let pp_expo : expo pp = fun oc e ->
-  match e with
-  | Public -> ()
-  | Protec -> Format.fprintf oc "protected "
-  | Privat -> Format.fprintf oc "private "
-
-let pp_match_strat : match_strat pp = fun oc s ->
-  match s with
-  | Sequen -> Format.fprintf oc "sequential "
-  | Eager -> ()
-
 (** [assoc oc a] prints associativity [a] to channel [oc]. *)
 let pp_assoc : Pratter.associativity pp = fun oc assoc ->
   match assoc with

@@ -411,7 +411,7 @@ let rec hnf : ctxt -> term -> term = fun ctx t ->
 
 (** [eval cfg ctx t] evaluates the term [t] in the context [ctx] according to
     configuration [cfg]. *)
-let eval : Parsing.Syntax.eval_config -> ctxt -> term -> term = fun c ctx t ->
+let eval : File_management.Type.eval_config -> ctxt -> term -> term = fun c ctx t ->
   match (c.strategy, c.steps) with
   | (_   , Some(0))
   | (NONE, _      ) -> t

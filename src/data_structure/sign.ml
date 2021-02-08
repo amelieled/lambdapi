@@ -9,8 +9,10 @@ open Timed
 open File_management.Error
 open File_management.Files
 open Terms
-open Parsing.Syntax
+(*open Parsing.Syntax*)
 open File_management.Pos
+open File_management.Type
+open Tags
 
 (** Representation of an inductive type *)
 type inductive =

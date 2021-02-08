@@ -10,9 +10,11 @@
 (* Status: Very Experimental                                            *)
 (************************************************************************)
 
-open Parsing
 open! Lplib
 
+open File_management.Pos
+open File_management.Type
+  
 module LSP = Lsp_base
 
 (* exception NoPosition of string *)
@@ -24,7 +26,7 @@ type doc_node =
   { ast   : Pure.Command.t
   ; exec  : bool
   (*; tactics : Proof.Tactic.t list*)
-  ; goals : (Pure.goal list * File_management.Pos.popt) list
+  ; goals : (Pure.goal list * popt) list
   }
 
 (* Private. A doc is a list of nodes for now. The first element in
@@ -38,8 +40,8 @@ type t = {
   mutable root  : Pure.state; (* Only mutated after parsing. *)
   mutable final : Pure.state; (* Only mutated after parsing. *)
   nodes : doc_node list;
-  logs : (string * File_management.Pos.popt) list;
-  map : (Syntax.p_module_path * string) RangeMap.t;
+  logs : (string * popt) list;
+  map : (p_module_path * string) RangeMap.t;
 }
 
 let option_default o1 d =

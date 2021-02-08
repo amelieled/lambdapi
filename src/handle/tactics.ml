@@ -5,6 +5,7 @@ open! Lplib
 open File_management.Error
 open Data_structure.Terms
 open File_management.Pos
+open File_management.Type.Tags
 open Parsing.Syntax
 open Proof_mode.Proof
 open! Type_checking

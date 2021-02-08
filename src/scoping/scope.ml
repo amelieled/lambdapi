@@ -5,6 +5,7 @@ open Lplib.Extra
 
 open File_management.Error
 open File_management.Pos
+open File_management.Type
 
 open Parsing.Syntax
 
@@ -54,7 +55,7 @@ let get_root : p_term -> sig_state -> Env.t -> sym = fun t ss env ->
 (** Representation of the different scoping modes.  Note that the constructors
     hold specific information for the given mode. *)
 type mode =
-  | M_Term of meta StrMap.t Stdlib.ref * expo
+  | M_Term of meta StrMap.t Stdlib.ref * Tags.expo
   (** Standard scoping mode for terms, holding a map of metavariables that can
       be updated with new metavariables on scoping and the exposition of the
       scoped term. *)
@@ -444,30 +445,13 @@ let scope : mode -> sig_state -> env -> p_term -> tbox = fun md ss env t ->
         fatal t.pos "Explicit argument not allowed here."
   in
   scope env t
-
-let to_prop : p_prop -> prop = fun p ->
-  match p with
-  | P_Defin -> Defin
-  | P_Const -> Const
-  | P_Injec -> Injec
-  
-let to_expo : p_expo -> expo = fun e ->
-  match e with
-  | P_Public -> Public
-  | P_Protec -> Protec
-  | P_Privat -> Privat
-
-let to_match_strat : p_match_strat -> match_strat = fun m ->
-  match m with
-  | P_Sequen -> Sequen
-  | P_Eager  -> Eager
-              
+   
 (** [scope ?exp ss env t] turns a parser-level term [t] into an actual term.
     The variables of the environment [env] may appear in [t]. The signature
     state [ss] is used to handle module aliasing according to [find_qid]. If
     [?exp] is {!constructor:Public}, then the term mustn't contain any private
     subterms. *)
-let scope_term : expo -> sig_state -> env -> p_term -> term =
+let scope_term : Tags.expo -> sig_state -> env -> p_term -> term =
   fun expo ss env t ->
   (*let expo = p_expo_to_expo p_expo in*)
   let m = Stdlib.ref StrMap.empty in
@@ -641,22 +625,22 @@ let scope_pattern : sig_state -> env -> p_term -> term = fun ss env t ->
 let scope_rw_patt : sig_state ->  env -> p_rw_patt -> rw_patt =
   fun ss env s ->
   match s.elt with
-  | P_rw_Term(t)               -> RW_Term(scope_pattern ss env t)
-  | P_rw_InTerm(t)             -> RW_InTerm(scope_pattern ss env t)
-  | P_rw_InIdInTerm(x,t)       ->
+  | Rw_Term(t)               -> RW_Term(scope_pattern ss env t)
+  | Rw_InTerm(t)             -> RW_InTerm(scope_pattern ss env t)
+  | Rw_InIdInTerm(x,t)       ->
       let v = Bindlib.new_var mkfree x.elt in
       let t = scope_pattern ss ((x.elt,(v, _Kind, None))::env) t in
       RW_InIdInTerm(Bindlib.unbox (Bindlib.bind_var v (lift t)))
-  | P_rw_IdInTerm(x,t)         ->
+  | Rw_IdInTerm(x,t)         ->
       let v = Bindlib.new_var mkfree x.elt in
       let t = scope_pattern ss ((x.elt,(v, _Kind, None))::env) t in
       RW_IdInTerm(Bindlib.unbox (Bindlib.bind_var v (lift t)))
-  | P_rw_TermInIdInTerm(u,x,t) ->
+  | Rw_TermInIdInTerm(u,(x,t)) ->
       let u = scope_pattern ss env u in
       let v = Bindlib.new_var mkfree x.elt in
       let t = scope_pattern ss ((x.elt,(v, _Kind, None))::env) t in
       RW_TermInIdInTerm(u, Bindlib.unbox (Bindlib.bind_var v (lift t)))
-  | P_rw_TermAsIdInTerm(u,x,t) ->
+  | Rw_TermAsIdInTerm(u,(x,t)) ->
       let u = scope_pattern ss env u in
       let v = Bindlib.new_var mkfree x.elt in
       let t = scope_pattern ss ((x.elt,(v, _Kind, None))::env) t in

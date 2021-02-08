@@ -385,7 +385,7 @@ module CM = struct
 
   (** [yield m] returns the next operation to carry out on matrix [m], that
       is, either specialising, solving a constraint or rewriting to a rule. *)
-  let yield : match_strat -> t -> decision =
+  let yield : File_management.Type.Tags.match_strat -> t -> decision =
     fun mstrat ({ clauses ; positions ; _ } as m) ->
     (* If a line is empty and priority is given to the topmost rule, we have
        to eliminate ¨empty¨ rules. *)
@@ -672,7 +672,7 @@ let is_prod : term -> bool = fun t ->
 
 (** [compile mstrat m] translates the pattern matching problem encoded by the
     matrix [m] into a decision tree following strategy [mstrat]. *)
-let compile : match_strat -> CM.t -> tree = fun mstrat m ->
+let compile : File_management.Type.Tags.match_strat -> CM.t -> tree = fun mstrat m ->
   (* [compile count vars_id cm] compiles clause matrix [cm] which contains
      [count] variables indexed in [vars_id] *)
   let rec compile : int -> int VarMap.t -> CM.t -> tree =

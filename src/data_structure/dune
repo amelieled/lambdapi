@@ -2,4 +2,4 @@
  (name data_structure)
  (public_name lambdapi.data_structure)
  (modules :standard)
- (libraries bindlib file_management parsing))
+ (libraries bindlib file_management))

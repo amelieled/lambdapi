@@ -3,8 +3,10 @@ open! Lplib
 open Timed
 open Tool
 open Parsing
+open File_management.Pos
 open File_management.Error
 open File_management.Files
+open File_management.Type
 
 open! File_management
 open! Type_checking
@@ -27,8 +29,8 @@ let interval_of_pos : Pos.pos -> Range.t =
   make_interval start finish
 
 (** Document identifier range map. *)
-let rangemap : Command.t list -> Syntax.qident_aux RangeMap.t =
-  let f map ({elt;pos} : Syntax.qident) =
+let rangemap : Command.t list -> qident_aux RangeMap.t =
+  let f map ({elt;pos} : qident) =
     (* Only add if the symbol has a position. *)
     match pos with
     | Some pos -> RangeMap.add (interval_of_pos pos) elt map
@@ -72,7 +74,7 @@ let parse_text : state -> string -> string -> Command.t list * state =
 
 type proof_finalizer = Sig_state.t -> Proof_mode.Proof.proof_state -> Sig_state.t
 type proof_state =
-  Time.t * Sig_state.t * Proof_mode.Proof.proof_state * proof_finalizer * Terms.expo
+  Time.t * Sig_state.t * Proof_mode.Proof.proof_state * proof_finalizer * Tags.expo
 
 type conclusion =
   | Typ of string * string
@@ -110,12 +112,12 @@ let current_goals : proof_state -> goal list =
 
 type command_result =
   | Cmd_OK    of state * Queries.result
-  | Cmd_Proof of proof_state * Tactic.t list * File_management.Pos.popt * File_management.Pos.popt
-  | Cmd_Error of File_management.Pos.popt option * string
+  | Cmd_Proof of proof_state * Tactic.t list * popt * popt
+  | Cmd_Error of popt option * string
 
 type tactic_result =
   | Tac_OK    of proof_state * Queries.result
-  | Tac_Error of File_management.Pos.popt option * string
+  | Tac_Error of popt option * string
 
 let t0 : Time.t Stdlib.ref = Stdlib.ref (Time.save ())
 
@@ -160,5 +162,5 @@ let end_proof : proof_state -> command_result = fun s ->
   try Cmd_OK((Time.save (), finalize ss p), None)
   with Fatal(p,m) -> Cmd_Error(p,m)
 
-let get_symbols : state -> (Terms.sym * File_management.Pos.popt) Extra.StrMap.t = fun s ->
+let get_symbols : state -> (Terms.sym * popt) Extra.StrMap.t = fun s ->
   (snd s).in_scope

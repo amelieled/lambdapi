@@ -2,6 +2,7 @@
 
 open File_management.Error
 open File_management.Pos
+open File_management.Type.Tags
 open Parsing.Syntax
 open Data_structure.Terms (* empty_problem only! *)
 open! Type_checking

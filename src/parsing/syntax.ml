@@ -5,55 +5,9 @@ open Lplib.Base
 open Lplib.Extra
 
 open File_management.Pos
+open File_management.Type
 
 (** {3 Term (and symbol) representation} *)
-
-(** Symbol properties. *)
-type p_prop =
-  | P_Defin
-  (** The symbol is definable by rewriting rules. *)
-  | P_Const
-  (** The symbol cannot be defined. *)
-  | P_Injec
-  (** The symbol is definable but is assumed to be injective. *)
-
-(** Specify the visibility and usability of symbols outside their module. *)
-type p_expo =
-  | P_Public
-  (** Visible and usable everywhere. *)
-  | P_Protec
-  (** Visible everywhere but usable in LHS arguments only. *)
-  | P_Privat
-  (** Not visible and thus not usable. *)
-
-(** Pattern-matching strategy modifiers. *)
-type p_match_strat =
-  | P_Sequen
-  (** Rules are processed sequentially: a rule can be applied only if the
-      previous ones (in the order of declaration) cannot be. *)
-  | P_Eager
-  (** Any rule that filters a term can be applied (even if a rule defined
-      earlier filters the term as well). This is the default. *)
-   
-(** Representation of a (located) identifier. *)
-type ident = strloc
-
-(** Parsing representation of a module path. For every path member the boolean
-    indicates whether it was given using the escaped syntax. *)
-type p_module_path = (string * bool) list
-
-(** Representation of a possibly qualified (and located) identifier. *)
-type qident_aux = p_module_path * string
-type qident = qident_aux loc
-
-(** The priority of an infix operator is a floating-point number. *)
-type priority = float
-
-(** Representation of a unary operator. *)
-type unop = string * priority * qident
-
-(** Representation of a binary operator. *)
-type binop = string * Pratter.associativity * priority * qident
 
 (** Parser-level (located) term representation. *)
 type p_term = p_term_aux loc
@@ -145,7 +99,8 @@ module P  = struct
 end
 
 (** Rewrite pattern specification. *)
-type p_rw_patt_aux =
+type p_rw_patt = (p_term, ident * p_term) rw_patt_aux loc
+(*type p_rw_patt_aux =
   | P_rw_Term           of p_term
   | P_rw_InTerm         of p_term
   | P_rw_InIdInTerm     of ident * p_term
@@ -153,25 +108,13 @@ type p_rw_patt_aux =
   | P_rw_TermInIdInTerm of p_term * ident * p_term
   | P_rw_TermAsIdInTerm of p_term * ident * p_term
 type p_rw_patt = p_rw_patt_aux loc
-
+ *)
 (** Parser-level representation of an assertion. *)
 type p_assertion =
   | P_assert_typing of p_term * p_type
   (** The given term should have the given type. *)
   | P_assert_conv   of p_term * p_term
   (** The two given terms should be convertible. *)
-
-(** Type representing the different evaluation strategies. *)
-type strategy =
-  | WHNF (** Reduce to weak head-normal form. *)
-  | HNF  (** Reduce to head-normal form. *)
-  | SNF  (** Reduce to strong normal form. *)
-  | NONE (** Do nothing. *)
-
-(** Configuration for evaluation. *)
-type eval_config =
-  { strategy : strategy   (** Evaluation strategy.          *)
-  ; steps    : int option (** Max number of steps if given. *) }
 
 (** Parser-level representation of a set option command. *)
 type p_set_option_aux =
@@ -262,16 +205,16 @@ type p_config =
 
 (** Parser-level representation of modifiers. *)
 type p_modifier_aux =
-  | P_mstrat of p_match_strat (** pattern matching strategy *)
-  | P_expo of p_expo (** visibility of symbol outside its modules *)
-  | P_prop of p_prop (** symbol properties : constant, definable, ... *)
+  | P_mstrat of Tags.match_strat (** pattern matching strategy *)
+  | P_expo   of Tags.expo (** visibility of symbol outside its modules *)
+  | P_prop   of Tags.prop (** symbol properties : constant, definable, ... *)
   | P_opaq (** opacity *)
 
 type p_modifier = p_modifier_aux loc
 
-let is_prop {elt; _} = match elt with P_prop(_) -> true | _ -> false
-let is_opaq {elt; _} = match elt with P_opaq -> true | _ -> false
-let is_expo {elt; _} = match elt with P_expo(_) -> true | _ -> false
+let is_prop {elt; _}   = match elt with P_prop(_)   -> true | _ -> false
+let is_opaq {elt; _}   = match elt with P_opaq      -> true | _ -> false
+let is_expo {elt; _}   = match elt with P_expo(_)   -> true | _ -> false
 let is_mstrat {elt; _} = match elt with P_mstrat(_) -> true | _ -> false
 
 (** Parser-level representation of symbol declarations. *)
@@ -360,13 +303,13 @@ let eq_p_inductive : p_inductive eq =
 
 let eq_p_rw_patt : p_rw_patt eq = fun {elt=r1;_} {elt=r2;_} ->
   match r1, r2 with
-  | P_rw_Term t1, P_rw_Term t2
-  | P_rw_InTerm t1, P_rw_InTerm t2 -> eq_p_term t1 t2
-  | P_rw_InIdInTerm(i1,t1), P_rw_InIdInTerm(i2,t2)
-  | P_rw_IdInTerm(i1,t1), P_rw_IdInTerm(i2,t2) ->
+  | Rw_Term t1, Rw_Term t2
+  | Rw_InTerm t1, Rw_InTerm t2 -> eq_p_term t1 t2
+  | Rw_InIdInTerm(i1,t1), Rw_InIdInTerm(i2,t2)
+  | Rw_IdInTerm(i1,t1), Rw_IdInTerm(i2,t2) ->
       eq_ident i1 i2 && eq_p_term t1 t2
-  | P_rw_TermInIdInTerm(t1,i1,u1), P_rw_TermInIdInTerm(t2,i2,u2)
-  | P_rw_TermAsIdInTerm(t1,i1,u1), P_rw_TermAsIdInTerm(t2,i2,u2) ->
+  | Rw_TermInIdInTerm(t1,(i1,u1)), Rw_TermInIdInTerm(t2,(i2,u2))
+  | Rw_TermAsIdInTerm(t1,(i1,u1)), Rw_TermAsIdInTerm(t2,(i2,u2)) ->
       eq_p_term t1 t2 && eq_ident i1 i2 && eq_p_term u1 u2
   | _, _ -> false
 
@@ -546,12 +489,12 @@ let fold_idents : ('a -> qident -> 'a) -> 'a -> p_command list -> 'a =
 
   let fold_rw_patt_vars : StrSet.t -> 'a -> p_rw_patt -> 'a = fun vs a p ->
     match p.elt with
-    | P_rw_Term t
-    | P_rw_InTerm t -> fold_term_vars vs a t
-    | P_rw_InIdInTerm (id, t)
-    | P_rw_IdInTerm (id, t) -> fold_term_vars (StrSet.add id.elt vs) a t
-    | P_rw_TermInIdInTerm (t, id, u)
-    | P_rw_TermAsIdInTerm (t, id, u) ->
+    | Rw_Term t
+    | Rw_InTerm t -> fold_term_vars vs a t
+    | Rw_InIdInTerm (id, t)
+    | Rw_IdInTerm (id, t) -> fold_term_vars (StrSet.add id.elt vs) a t
+    | Rw_TermInIdInTerm (t, (id, u))
+    | Rw_TermAsIdInTerm (t, (id, u)) ->
         fold_term_vars (StrSet.add id.elt vs) (fold_term_vars vs a t) u
   in
 

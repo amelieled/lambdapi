@@ -2,8 +2,9 @@
 
 open Lplib
 
-open! File_management
+open File_management.Pos
 open File_management.Files
+open File_management.Type
 
 open! Handle
 
@@ -11,16 +12,16 @@ open! Handle
 module Command : sig
   type t
   val equal : t -> t -> bool
-  val get_pos : t -> Pos.popt
+  val get_pos : t -> popt
 end
 
-val rangemap : Command.t list -> Parsing.Syntax.qident_aux RangeMap.t
+val rangemap : Command.t list -> qident_aux RangeMap.t
 
 (** Abstract representation of a tactic (proof item). *)
 module Tactic : sig
   type t
   val equal : t -> t -> bool
-  val get_pos : t -> Pos.popt
+  val get_pos : t -> popt
 end
 
 (** Representation of the state when at the toplevel. *)
@@ -30,7 +31,7 @@ type state
 type proof_state
 
 (** Exception raised by [parse_text]. *)
-exception Parse_error of Pos.pos * string
+exception Parse_error of pos * string
 
 (** [parse_text st fname contents] runs the parser on the string [contents] as
     if it were a file named [fname]. The action takes place in the state [st],
@@ -51,15 +52,15 @@ val current_goals : proof_state -> goal list
 type command_result =
   | Cmd_OK    of state * Queries.result
   (** Command is done. *)
-  | Cmd_Proof of proof_state * Tactic.t list * Pos.popt * Pos.popt
+  | Cmd_Proof of proof_state * Tactic.t list * popt * popt
   (** Enter proof mode (positions are for statement and qed). *)
-  | Cmd_Error of Pos.popt option * string
+  | Cmd_Error of popt option * string
   (** Error report. *)
 
 (** Result type of the [handle_tactic] function. *)
 type tactic_result =
   | Tac_OK    of proof_state * Queries.result
-  | Tac_Error of Pos.popt option * string
+  | Tac_Error of popt option * string
 
 (** [initial_state fname] gives an initial state for working with the (source)
     file [fname]. The resulting state can be used by [handle_command]. *)
@@ -84,7 +85,7 @@ val end_proof : proof_state -> command_result
 
 (** [get_symbols st] returns all the symbols defined in the signature at state
     [st]. This can be used for displaying the type of symbols. *)
-val get_symbols : state -> (Data_structure.Terms.sym * Pos.popt) Extra.StrMap.t
+val get_symbols : state -> (Data_structure.Terms.sym * popt) Extra.StrMap.t
 
 (** [set_initial_time ()] records the current imperative state as the rollback
     "time" for the [initial_state] function. This is only useful to initialise

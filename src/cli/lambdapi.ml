@@ -7,6 +7,7 @@ open Cmdliner
 open Tool
 open File_management.Files
 open File_management.Error
+open File_management.Type
 open Version
 open Data_structure
 
@@ -75,7 +76,7 @@ let lsp_server_cmd : Cliconf.t -> bool -> string -> unit =
   File_management.Error.handle_exceptions run
 
 (** Printing a decision tree. *)
-let decision_tree_cmd : Cliconf.t -> (Parsing.Syntax.p_module_path * string) -> unit =
+let decision_tree_cmd : Cliconf.t -> (p_module_path * string) -> unit =
   fun cfg (mp, sym) ->
   let run _ =
     Timed.(verbose := 0); (* To avoid printing the "Checked ..." line *)
@@ -144,10 +145,10 @@ let lsp_log_file : string Term.t =
 
 (** Specific to the ["decision-tree"] command. *)
 
-let qsym : (Parsing.Syntax.p_module_path * string) Term.t =
-  let qsym_conv: (Parsing.Syntax.p_module_path * string) Arg.conv =
+let qsym : (p_module_path * string) Term.t =
+  let qsym_conv: (p_module_path * string) Arg.conv =
     let parse (s: string):
-      (Parsing.Syntax.p_module_path * string, [>`Msg of string]) result =
+      (p_module_path * string, [>`Msg of string]) result =
       match Parsing.Parser.parse_qident s with
       | Error(i, Some(pos)) ->
         let msg =

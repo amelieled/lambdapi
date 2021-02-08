@@ -2,4 +2,4 @@
  (name scoping)
  (public_name lambdapi.scoping)
  (modules :standard)
- (libraries bindlib parsing data_structure))
+ (libraries parsing data_structure))

@@ -5,6 +5,7 @@
     open Syntax
     open Lplib
     open File_management.Pos
+    open File_management.Type
 
     let make_pos : Lexing.position * Lexing.position -> 'a -> 'a loc =
       fun lps elt -> File_management.Pos.in_pos (locate lps) elt
@@ -119,13 +120,13 @@
 %type <Syntax.p_term> aterm
 %type <Syntax.p_term> sterm
 %type <Syntax.p_args> arg_list
-%type <Syntax.ident * bool> ident
-%type <Syntax.ident option> patt
+%type <File_management.Type.ident * bool> ident
+%type <File_management.Type.ident option> patt
 %type <Syntax.p_rule> rule
 %type <Syntax.p_tactic> tactic
 %type <Syntax.p_modifier> modifier
 %type <Syntax.p_config> config
-%type <Syntax.qident> qident
+%type <qident> qident
 %type <Syntax.p_rw_patt> rw_patt
 %type <Syntax.p_tactic list * Syntax.p_proof_end> proof
 
@@ -169,9 +170,9 @@ arg_list:
 
 // Patterns of the rewrite tactic
 rw_patt:
-  | t=term { make_pos $loc (P_rw_Term(t)) }
-  | IN t=term { make_pos $loc (P_rw_InTerm(t)) }
-  | IN x=ident IN t=term { make_pos $loc (P_rw_InIdInTerm(fst x, t)) }
+  | t=term { make_pos $loc (Rw_Term(t)) }
+  | IN t=term { make_pos $loc (Rw_InTerm(t)) }
+  | IN x=ident IN t=term { make_pos $loc (Rw_InIdInTerm(fst x, t)) }
   | u=term IN x=term t=preceded(IN, term)?
     {
       let ident_of_term {elt; _} =
@@ -180,11 +181,11 @@ rw_patt:
           | _ -> $syntaxerror
       in
       match t with
-      | Some(t) -> make_pos $loc (P_rw_TermInIdInTerm(u, ident_of_term x, t))
-      | None -> make_pos $loc (P_rw_IdInTerm(ident_of_term u, x))
+      | Some(t) -> make_pos $loc (Rw_TermInIdInTerm(u, (ident_of_term x, t)))
+      | None -> make_pos $loc (Rw_IdInTerm(ident_of_term u, x))
     }
   | u=term AS x=ident IN t=term
-      { make_pos $loc (P_rw_TermAsIdInTerm(u, fst x, t)) }
+      { make_pos $loc (Rw_TermAsIdInTerm(u, (fst x, t))) }
 
 // Tactics available in proof mode.
 tactic:
@@ -211,12 +212,12 @@ tactic:
 
 // Modifiers of declarations.
 modifier:
-  | CONSTANT { make_pos $loc (P_prop P_Const) }
-  | INJECTIVE { make_pos $loc (P_prop P_Injec) }
+  | CONSTANT { make_pos $loc (P_prop Tags.Const) }
+  | INJECTIVE { make_pos $loc (P_prop Tags.Injec) }
   | OPAQUE { make_pos $loc P_opaq }
-  | PRIVATE { make_pos $loc (P_expo P_Privat) }
-  | PROTECTED { make_pos $loc (P_expo P_Protec) }
-  | SEQUENTIAL { make_pos $loc (P_mstrat P_Sequen) }
+  | PRIVATE { make_pos $loc (P_expo Tags.Privat) }
+  | PROTECTED { make_pos $loc (P_expo Tags.Protec) }
+  | SEQUENTIAL { make_pos $loc (P_mstrat Tags.Sequen) }
 
 // Converts floats and integers to floats
 float_or_int:

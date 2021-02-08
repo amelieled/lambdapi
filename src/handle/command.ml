@@ -10,6 +10,9 @@ open Data_structure.Terms
 open Data_structure.Sign
 open File_management.Pos
 open File_management.Files
+open File_management.Type
+open Tags
+   
 open Parsing.Syntax
 open! Proof_mode
 open! Type_checking
@@ -84,7 +87,7 @@ let handle_require_as : (Path.t -> Sign.t) -> popt -> sig_state -> Path.t ->
 
 (** [handle_modifiers ms] verifies that the modifiers in [ms] are compatible.
     If so, they are returned as a tuple. Otherwise, it fails. *)
-let handle_modifiers : p_modifier list -> (prop * expo * match_strat) =
+let handle_modifiers : p_modifier list -> (Tags.prop * Tags.expo * Tags.match_strat) =
   fun ms ->
   let die (ms: p_modifier list) =
     let modifier oc (m: p_modifier) =
@@ -99,7 +102,7 @@ let handle_modifiers : p_modifier list -> (prop * expo * match_strat) =
         fatal_msg "Only one property modifier can be used, \
                    %d have been found: " (List.length prop);
         die prop
-    | [{elt=P_prop(p); _}] -> Scope.to_prop p
+    | [{elt=P_prop(p); _}] -> p
     | [] -> Defin
     | _ -> assert false
   in
@@ -110,7 +113,7 @@ let handle_modifiers : p_modifier list -> (prop * expo * match_strat) =
         fatal_msg "Only one exposition marker can be used, \
                    %d have been found: " (List.length expo);
         die expo
-    | [{elt=P_expo(e); _}] -> Scope.to_expo e
+    | [{elt=P_expo(e); _}] -> e
     | [] -> Public
     | _ -> assert false
   in
@@ -121,7 +124,7 @@ let handle_modifiers : p_modifier list -> (prop * expo * match_strat) =
         fatal_msg "Only one strategy modifier can be used, \
                    %d have been found: " (List.length mstrat);
         die mstrat
-    | [{elt=P_mstrat(s); _ }] -> Scope.to_match_strat s
+    | [{elt=P_mstrat(s); _ }] -> s
     | [] -> Eager
     | _ -> assert false
   in
@@ -187,8 +190,7 @@ type proof_data =
   ; pdata_tactics  : p_tactic list (** Tactics. *)
   ; pdata_finalize : sig_state -> Proof.proof_state -> sig_state (** Finalizer. *)
   ; pdata_end_pos  : File_management.Pos.popt (** File_management.Position of the proof's terminator. *)
-  ; pdata_expo     : Terms.expo (** Allowed exposition of symbols in the proof
-                                   script. *) }
+  ; pdata_expo     : expo (** Allowed exposition of symbols in the proof script. *) }
 
 (** [handle_cmd_aux compile ss cmd] tries to handle the command [cmd] with [ss]
     as the signature state and [compile] as the main compilation function

@@ -10,11 +10,12 @@ open Lplib.Base
 
 open File_management.Error
 open File_management.Pos
+open File_management.Type
 open Syntax
 
 let string = Format.pp_print_string
 
-let path_elt : File_management.Pos.popt -> (string * bool) pp = fun pos ff (s,b) ->
+let path_elt : popt -> (string * bool) pp = fun pos ff (s,b) ->
   if not b && LpLexer.is_keyword s then
     fatal pos "Module path member [%s] is a Lambdapi keyword." s;
   if b then Format.fprintf ff "{|%s|}" s else string ff s
@@ -36,28 +37,11 @@ let arg_ident : ident option pp = fun ff id ->
   | Some(id) -> ident ff id
   | None     -> string ff "_"
 
-let pp_prop : p_prop pp = fun ff p ->
-  match p with
-  | P_Defin -> ()
-  | P_Const -> Format.fprintf ff "constant "
-  | P_Injec -> Format.fprintf ff "injective "
-
-let pp_expo : p_expo pp = fun ff e ->
-  match e with
-  | P_Public -> ()
-  | P_Protec -> Format.fprintf ff "protected "
-  | P_Privat -> Format.fprintf ff "private "
-
-let pp_match_strat : p_match_strat pp = fun ff s ->
-  match s with
-  | P_Sequen -> Format.fprintf ff "sequential "
-  | P_Eager  -> ()
-
 let modifier : p_modifier pp = fun ff {elt; _} ->
   match elt with
-  | P_expo(e)   -> pp_expo ff e
-  | P_mstrat(s) -> pp_match_strat ff s
-  | P_prop(p)   -> pp_prop ff p
+  | P_expo(e)   -> Tags.pp_expo ff e
+  | P_mstrat(s) -> Tags.pp_match_strat ff s
+  | P_prop(p)   -> Tags.pp_prop ff p
   | P_opaq      -> string ff "opaque "
 
 let rec term : p_term pp = fun ff t ->
@@ -172,12 +156,12 @@ let proof_end : p_proof_end pp = fun ff {elt;_} ->
 let rw_patt : p_rw_patt pp = fun ff p ->
   let out fmt = Format.fprintf ff fmt in
   match p.elt with
-  | P_rw_Term(t)               -> out "%a" term t
-  | P_rw_InTerm(t)             -> out "in %a" term t
-  | P_rw_InIdInTerm(x,t)       -> out "in %a in %a" ident x term t
-  | P_rw_IdInTerm(x,t)         -> out "%a in %a" ident x term t
-  | P_rw_TermInIdInTerm(u,x,t) -> out "%a in %a in %a" term u ident x term t
-  | P_rw_TermAsIdInTerm(u,x,t) -> out "%a as %a in %a" term u ident x term t
+  | Rw_Term(t)                 -> out "%a" term t
+  | Rw_InTerm(t)               -> out "in %a" term t
+  | Rw_InIdInTerm(x,t)         -> out "in %a in %a" ident x term t
+  | Rw_IdInTerm(x,t)           -> out "%a in %a" ident x term t
+  | Rw_TermInIdInTerm(u,(x,t)) -> out "%a in %a in %a" term u ident x term t
+  | Rw_TermAsIdInTerm(u,(x,t)) -> out "%a as %a in %a" term u ident x term t
 
 let assertion : p_assertion pp = fun ff asrt ->
   let out fmt = Format.fprintf ff fmt in

@@ -17,15 +17,17 @@ open! File_management
 open File_management.Error
 open Files
 open File_management.Pos
-
-open Parsing.Syntax
+open File_management.Type
+open Tags
+   
+(*open Parsing.Syntax*)
 open Terms
 open Sign
 
 (** State of the signature, including aliasing and accessible symbols. *)
 type sig_state =
   { signature : Sign.t                    (** Current signature.        *)
-  ; in_scope  : (sym * File_management.Pos.popt) StrMap.t (** Symbols in scope.         *)
+  ; in_scope  : (sym * popt) StrMap.t     (** Symbols in scope.         *)
   ; aliases   : Path.t StrMap.t           (** Established aliases.      *)
   ; path_map  : string PathMap.t          (** Reverse map of [aliases]. *)
   ; builtins  : sym StrMap.t              (** Builtin symbols.          *)

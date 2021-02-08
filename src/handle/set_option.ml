@@ -3,7 +3,7 @@
 open File_management.Pos
 open File_management.Error
 
-open Why3_tactic
+open Proof_mode.Why3_tactic
 
 (** [handle_set_option q] *)
 let handle_set_option : Parsing.Syntax.p_set_option -> 'a = fun q ->
