@@ -4,15 +4,16 @@
 open Lplib.Extra
 
 open Data_structure
+open Tool
    
 let _ =
   File_management.Files.set_lib_root None;
-  match File_management.Package.find_config "." with
+  match Package.find_config "." with
   | None -> assert false
-  | Some(f) -> File_management.Package.apply_config f
+  | Some(f) -> Package.apply_config f
 
 let compile (fname: string): Sign.t =
-  Tool.Compile.compile false (File_management.Files.file_to_module fname)
+  Compile.compile false (File_management.Files.file_to_module fname)
 
 let bool_file = "OK/bool.lp"
 let bool_sign = compile bool_file
@@ -42,7 +43,7 @@ let test_dtree () =
       in
       let buf = Buffer.create 16 in
       let fmt = Format.formatter_of_buffer buf in
-      Tool.Tree_graphviz.to_dot fmt sym;
+      Tree_graphviz.to_dot fmt sym;
       Alcotest.(check bool) "bool" (Buffer.contents buf <> "") true
   | _ -> assert false
 
@@ -53,7 +54,7 @@ let test_dtree_ghost () =
   let sym = fst (StrMap.find "#equiv" Timed.(!(Sign.ghost_sign.sign_symbols))) in
   let buf = Buffer.create 16 in
   let fmt = Format.formatter_of_buffer buf in
-  Tool.Tree_graphviz.to_dot fmt sym;
+  Tree_graphviz.to_dot fmt sym;
   Alcotest.(check bool) "bool" (Buffer.contents buf <> "") true
 
 let _ =

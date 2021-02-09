@@ -8,7 +8,6 @@ open File_management.Error
 open File_management.Files
 open File_management.Type
 
-open! File_management
 open! Type_checking
 open! Proof_mode
 open! Data_structure
@@ -21,7 +20,7 @@ module Command = struct
   let get_pos c = File_management.Pos.(c.pos)
 end
 
-let interval_of_pos : Pos.pos -> Range.t =
+let interval_of_pos : pos -> Range.t =
   fun {start_line; start_col; end_line; end_col; _} ->
   let open Range in
   let start : point = make_point start_line start_col in
@@ -127,7 +126,7 @@ let set_initial_time : unit -> unit = fun _ ->
 let initial_state : file_path -> state = fun fname ->
   Compile.reset_default ();
   Time.restore Stdlib.(!t0);
-  File_management.Package.apply_config fname;
+  Package.apply_config fname;
   let mp = File_management.Files.file_to_module fname in
   Sign.loading := [mp];
   let sign = Sig_state.create_sign mp in

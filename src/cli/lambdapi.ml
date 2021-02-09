@@ -83,7 +83,7 @@ let decision_tree_cmd : Cliconf.t -> (p_module_path * string) -> unit =
     (* By default, search for a package from the current working directory. *)
     let pth = Sys.getcwd () in
     let pth = Filename.concat pth "." in
-    File_management.Package.apply_config pth;
+    Package.apply_config pth;
     Cliconf.init cfg;
     let sym =
       let sign = Compile.compile false (List.map fst mp) in
