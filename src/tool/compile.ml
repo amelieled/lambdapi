@@ -108,18 +108,18 @@ let rec compile : bool -> Path.t -> Sign.t = fun force path ->
       in
       let consume cmd = Stdlib.(sig_st := handle !sig_st cmd) in
       Stream.iter consume (parse_file src);
-      Sign.strip_private sign;
-      if Stdlib.(!gen_obj) then Sign.write sign obj;
+      Csign.strip_private sign;
+      if Stdlib.(!gen_obj) then Csign.write sign obj;
       loading := List.tl !loading;
       out 1 "Checked %s\n%!" src; sign
     end
   else
     begin
       out 2 "Loading %s ...\n%!" (src ());
-      let sign = Sign.read obj in
+      let sign = Csign.read obj in
       PathMap.iter (fun mp _ -> ignore (compile false mp)) !(sign.sign_deps);
       loaded := PathMap.add path sign !loaded;
-      Sign.link sign;
+      Csign.link sign;
       out 2 "Loaded %s\n%!" obj; sign
     end
 

@@ -87,7 +87,7 @@ let print_sym_rule : Format.formatter -> sym -> rule -> unit = fun oc s r ->
     the signature [sign] to the output channel [oc]. *)
 let to_HRS : Format.formatter -> Data_structure.Sign.t -> unit = fun oc sign ->
   (* Get all the dependencies (every needed symbols and rewriting rules). *)
-  let deps = Data_structure.Sign.dependencies sign in
+  let deps = Sign_dep.dependencies sign in
   (* Function to iterate over every symbols. *)
   let iter_symbols : (sym -> unit) -> unit = fun fn ->
     let not_on_ghosts _ (s, _) =

@@ -180,7 +180,7 @@ let get_vars : sym -> rule -> (string * term) list = fun s r ->
     the signature [sign] to the output channel [oc]. *)
 let to_XTC : Format.formatter -> Sign.t -> unit = fun oc sign ->
   (* Get all the dependencies (every needed symbols and rewriting rules). *)
-  let deps = Sign.dependencies sign in
+  let deps = Sign_dep.dependencies sign in
   (* Function to iterate over every symbols. *)
   let iter_symbols : (sym -> unit) -> unit = fun fn ->
     (* Iterate on all symbols of a signature, excluding ghost symbols. *)
