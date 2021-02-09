@@ -5,7 +5,7 @@ open Tool
 open Parsing
 open File_management.Pos
 open File_management.Error
-open File_management.Files
+open File_management.Module
 open File_management.Type
 
 open! Type_checking
@@ -47,11 +47,11 @@ end
 type state = Time.t * Sig_state.t
 
 (** Exception raised by [parse_text] on error. *)
-exception Parse_error of File_management.Pos.pos * string
+exception Parse_error of pos * string
 
 let parse_text : state -> string -> string -> Command.t list * state =
     fun (t,st) fname s ->
-  let old_syntax = Filename.check_suffix fname legacy_src_extension in
+  let old_syntax = Filename.check_suffix fname File.legacy_src_extension in
   try
     Time.restore t;
     let ast =
@@ -127,7 +127,7 @@ let initial_state : file_path -> state = fun fname ->
   Compile.reset_default ();
   Time.restore Stdlib.(!t0);
   Package.apply_config fname;
-  let mp = File_management.Files.file_to_module fname in
+  let mp = File.file_to_module fname in
   Sign.loading := [mp];
   let sign = Sig_state.create_sign mp in
   Sign.loaded  := PathMap.add mp sign !Sign.loaded;

@@ -87,20 +87,6 @@ let fatal_no_pos : ('a,'b) koutfmt -> 'a = fun fmt ->
   let cont _ = raise (Fatal(None, Format.flush_str_formatter ())) in
   Format.kfprintf cont Format.str_formatter fmt
 
-(** [handle_exceptions f] runs [f ()] in an exception handler and handles both
-    expected and unexpected exceptions by displaying a graceful error message.
-    In case of an error, the program is (irrecoverably) stopped with exit code
-    [1] (indicating failure). Hence, [handle_exceptions] should only be called
-    by the main program logic, not by the internals. *)
-let handle_exceptions : (unit -> unit) -> unit = fun f ->
-  let exit_with : type a b. (a,b) koutfmt -> a = fun fmt ->
-    Format.(kfprintf (fun _ -> exit 1) err_formatter (red (fmt ^^ "\n%!")))
-  in
-  try f () with
-  | Fatal(None,    msg) -> exit_with "%s" msg
-  | Fatal(Some(p), msg) -> exit_with "[%a] %s" Pos.print p msg
-  | e                   -> exit_with "Uncaught [%s]." (Printexc.to_string e)
-
 (** Type of a logging function. *)
 type logger = { logger : 'a. 'a outfmt -> 'a }
 
@@ -129,20 +115,7 @@ let log_summary : unit -> (char * string) list = fun () ->
   let compare (c1, _) (c2, _) = Char.compare c1 c2 in
   List.sort compare (List.map fn Stdlib.(!loggers))
 
-(** [set_log value key] enables or disables the loggers corresponding to every
-    character of [str] according to [value]. *)
-let set_debug : bool -> string -> unit = fun value str ->
-  let fn {logger_key; logger_enabled; _} =
-    if String.contains str logger_key then logger_enabled := value
-  in
-  List.iter fn Stdlib.(!loggers);
-  let is_enabled data = !(data.logger_enabled) in
-  log_enabled := List.exists is_enabled Stdlib.(!loggers)
 
-(** [set_default_debug str] declares the debug flags of [str] to be enabled by
-    default. *)
-let set_default_debug : string -> unit = fun str ->
-  Stdlib.(default_loggers := str); set_debug true str
 
 (** [new_logger key name desc] returns (and registers) a new logger. *)
 let new_logger : char -> string -> string -> logger = fun key name desc ->
@@ -201,8 +174,3 @@ let register_flag : string -> bool -> bool ref = fun id default ->
     invalid_arg "Error.register_flag: already registered";
   let r = ref default in
   Stdlib.(boolean_flags := StrMap.add id (default, r) !boolean_flags); r
-
-(** [set_flag id b] sets the value of the flag named [id] to be [b], or raises
-    [Not_found] if no flag with this name was registered. *)
-let set_flag : string -> bool -> unit = fun id b ->
-  snd (StrMap.find id Stdlib.(!boolean_flags)) := b

@@ -3,7 +3,7 @@
 open Lplib
 
 open File_management.Pos
-open File_management.Files
+open File_management.Module
 open File_management.Type
 
 open! Handle

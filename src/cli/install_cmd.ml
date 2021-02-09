@@ -1,5 +1,4 @@
 open Cmdliner
-open File_management.Files
 open File_management.Error
 
 open Tool
@@ -27,7 +26,7 @@ let run_install : Cliconf.t -> bool -> string list -> unit =
             (* Install package file at the root path. *)
             let path = Package.((read file).root_path) in
             let lib_root =
-              match Stdlib.(!lib_root) with
+              match Stdlib.(!File.lib_root) with
               | None -> assert false
               | Some(p) -> p
             in
@@ -38,7 +37,7 @@ let run_install : Cliconf.t -> bool -> string list -> unit =
           begin
             (* Source or object file, find out expected destination. *)
             Package.apply_config file;
-            File_management.Files.install_path file
+            File.install_path file
           end
       in
       (* Create directories as needed for [dest]. *)
@@ -57,7 +56,7 @@ let run_install : Cliconf.t -> bool -> string list -> unit =
     in
     List.iter install files
   in
-  File_management.Error.handle_exceptions run
+  Compile.handle_exceptions run
 
 let run_uninstall : Cliconf.t -> bool -> string -> unit =
     fun cfg dry_run pkg_file ->
@@ -69,7 +68,7 @@ let run_uninstall : Cliconf.t -> bool -> string -> unit =
       Package.(pkg_config.package_name, pkg_config.root_path)
     in
     (* Compute the expected installation directory. *)
-    let lib_root = match !lib_root with None -> assert false | Some(p) -> p in
+    let lib_root = match File.(!lib_root) with None -> assert false | Some(p) -> p in
     let pkg_dir = List.fold_left Filename.concat lib_root pkg_root_path in
     let pkg_file = Filename.concat pkg_dir Package.pkg_file in
     (* Check that a package is indeed installed there. *)
@@ -84,7 +83,7 @@ let run_uninstall : Cliconf.t -> bool -> string -> unit =
     let cmd = "rm -r " ^ Filename.quote pkg_dir in
     run_command dry_run cmd
   in
-  File_management.Error.handle_exceptions run
+  Compile.handle_exceptions run
 
 let dry_run : bool Term.t =
   let doc =
@@ -107,7 +106,7 @@ let files : string list Term.t =
       "Source file with the [%s] extension (or with the [%s] extension when \
        using the legacy Dedukti syntax), object file with the [%s] extension,
        or package configuration file $(b,%s)."
-      src_extension legacy_src_extension obj_extension
+      File.src_extension File.legacy_src_extension File.obj_extension
       Package.pkg_file
   in
   Arg.(value & (pos_all non_dir_file []) & info [] ~docv:"FILE" ~doc)

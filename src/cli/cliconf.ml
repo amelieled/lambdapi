@@ -3,7 +3,7 @@
 open! Lplib
 
 open Cmdliner
-open File_management.Files
+open File_management.Module
 open File_management.Error
 
 (** {3 Configuration type for common values} *)
@@ -42,21 +42,21 @@ let default_config =
 let init : config -> unit = fun cfg ->
   (* Set all the flags and configs. *)
   Tool.Compile.gen_obj := cfg.gen_obj;
-  File_management.Files.set_lib_root cfg.lib_root;
-  List.iter (fun (m,d) -> File_management.Files.new_lib_mapping (m ^ ":" ^ d)) cfg.map_dir;
+  Tool.File.set_lib_root cfg.lib_root;
+  List.iter (fun (m,d) -> Tool.File.new_lib_mapping (m ^ ":" ^ d)) cfg.map_dir;
   Option.iter set_default_verbose cfg.verbose;
   no_wrn := cfg.no_warnings;
-  set_default_debug cfg.debug;
+  Handle.Set_option.set_default_debug cfg.debug;
   File_management.Error.color := not cfg.no_colors;
   Tool.Compile.too_long := cfg.too_long;
   (* Log some configuration data. *)
   if Timed.(!log_enabled) then
     begin
-      File_management.Files.log_file "running directory: [%s]" (File_management.Files.current_path ());
-      File_management.Files.log_file "library root path: [%s]"
-        (match !lib_root with None -> assert false | Some(p) -> p);
-      let fn = File_management.Files.log_file "mapping: [%a] → [%s]" File_management.Files.Path.pp in
-      File_management.Files.ModMap.iter fn (File_management.Files.current_mappings ())
+      log_file "running directory: [%s]" (Tool.File.current_path ());
+      log_file "library root path: [%s]"
+        (match Tool.File.(!lib_root) with None -> assert false | Some(p) -> p);
+      let fn = log_file "mapping: [%a] → [%s]" Path.pp in
+      ModMap.iter fn (Tool.File.current_mappings ())
     end;
   (* Initialise the [Pure] interface (this must come last). *)
   Pure.set_initial_time ()
@@ -72,7 +72,7 @@ let gen_obj : bool Term.t =
        then be read during subsequent calls to avoid re-type-checking fo the \
        corresponding source file. Note that an object file is only used when \
        it is up to date (i.e., more recent than the source). If that is not \
-       the case then the outdated file is overwritten." obj_extension
+       the case then the outdated file is overwritten." Tool.File.obj_extension
   in
   Arg.(value & flag & info ["gen-obj"; "c"] ~doc)
 

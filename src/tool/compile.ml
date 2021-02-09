@@ -5,9 +5,11 @@ open! Lplib
 open Timed
 open! Data_structure
 open Data_structure.Sign
-open! File_management
+
+open File_management.Module
 open File_management.Error
-open File_management.Files
+
+open File
 
 open! Handle
 open Debug_console
@@ -53,7 +55,7 @@ let parse_file : string -> Parsing.Syntax.ast = fun fname ->
     or [force] is [true]).  In that case,  the produced signature is stored in
     the corresponding object file. *)
 let rec compile : bool -> Path.t -> Sign.t = fun force path ->
-  let base = File_management.Files.module_to_file (List.map Parsing.LpLexer.unquote path) in
+  let base = File.module_to_file (List.map Parsing.LpLexer.unquote path) in
   let src () =
     (* Searching for source is delayed because we may not need it
        in case of "ghost" signatures (such as for unification rules). *)
@@ -76,7 +78,7 @@ let rec compile : bool -> Path.t -> Sign.t = fun force path ->
   if PathMap.mem path !loaded then
     let sign = PathMap.find path !loaded in
     out 2 "Already loaded [%a]\n%!" Path.pp path; sign
-  else if force || File_management.Files.more_recent (src ()) obj then
+  else if force || File.more_recent (src ()) obj then
     begin
       let forced = if force then " (forced)" else "" in
       let src = src () in
@@ -131,7 +133,7 @@ let recompile = Stdlib.ref false
 let compile_file : file_path -> Sign.t = fun fname ->
   Package.apply_config fname;
   (* Compute the module path (checking the extension). *)
-  let mp = File_management.Files.file_to_module fname in
+  let mp = File.file_to_module fname in
   (* Run compilation. *)
   compile Stdlib.(!recompile) mp
 
@@ -187,3 +189,17 @@ let reset_default : unit -> unit = fun () ->
   (* Reset flags to their default values. *)
   let reset _ (default, r) = r := default in
   Extra.StrMap.iter reset Stdlib.(!boolean_flags)
+
+(** [handle_exceptions f] runs [f ()] in an exception handler and handles both
+    expected and unexpected exceptions by displaying a graceful error message.
+    In case of an error, the program is (irrecoverably) stopped with exit code
+    [1] (indicating failure). Hence, [handle_exceptions] should only be called
+    by the main program logic, not by the internals. *)
+let handle_exceptions : (unit -> unit) -> unit = fun f ->
+  let exit_with : type a b. (a,b) koutfmt -> a = fun fmt ->
+    Format.(kfprintf (fun _ -> exit 1) err_formatter (red (fmt ^^ "\n%!")))
+  in
+  try f () with
+  | Fatal(None,    msg) -> exit_with "%s" msg
+  | Fatal(Some(p), msg) -> exit_with "[%a] %s" File_management.Pos.print p msg
+  | e                   -> exit_with "Uncaught [%s]." (Printexc.to_string e)

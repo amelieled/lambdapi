@@ -68,7 +68,7 @@ type term =
   (** Name of the symbol. *)
   ; sym_type  : term ref
   (** Type of the symbol. *)
-  ; sym_path  : File_management.Files.Path.t
+  ; sym_path  : File_management.Module.Path.t
   (** Module in which it is defined. *)
   ; sym_def   : term option ref
   (** Definition of the symbol. *)

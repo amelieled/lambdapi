@@ -5,7 +5,7 @@ open Lplib.Extra
 
 open Cmdliner
 open Tool
-open File_management.Files
+open File_management.Module
 open File_management.Error
 open File_management.Type
 open Version
@@ -49,7 +49,7 @@ let check_cmd : Cliconf.t -> int option -> bool -> string list -> unit =
     in
     List.iter handle files
   in
-  File_management.Error.handle_exceptions run
+  Compile.handle_exceptions run
 
 (** Running the parsing mode. *)
 let parse_cmd : Cliconf.t -> string list -> unit = fun cfg files ->
@@ -61,19 +61,19 @@ let parse_cmd : Cliconf.t -> string list -> unit = fun cfg files ->
     let handle file = Time.restore time; ignore (Compile.parse_file file) in
     List.iter handle files
   in
-  File_management.Error.handle_exceptions run
+  Compile.handle_exceptions run
 
 (** Running the pretty-printing mode. *)
 let beautify_cmd : Cliconf.t -> string -> unit = fun cfg file ->
   let run _ =
     Cliconf.init cfg; Parsing.Pretty.beautify (Compile.parse_file file) in
-  File_management.Error.handle_exceptions run
+  Compile.handle_exceptions run
 
 (** Running the LSP server. *)
 let lsp_server_cmd : Cliconf.t -> bool -> string -> unit =
     fun cfg standard_lsp lsp_log_file ->
   let run _ = Cliconf.init cfg; Lsp.Lp_lsp.main standard_lsp lsp_log_file in
-  File_management.Error.handle_exceptions run
+  Compile.handle_exceptions run
 
 (** Printing a decision tree. *)
 let decision_tree_cmd : Cliconf.t -> (p_module_path * string) -> unit =
@@ -106,7 +106,7 @@ let decision_tree_cmd : Cliconf.t -> (p_module_path * string) -> unit =
     else
       out 0 "%a" Tree_graphviz.to_dot sym
   in
-  File_management.Error.handle_exceptions run
+  Compile.handle_exceptions run
 
 (** {3 Command line argument parsing} *)
 
@@ -173,7 +173,7 @@ let file : string Term.t =
   let doc =
     Printf.sprintf
       "Source file with the [%s] extension (or with the [%s] extension when \
-       using the legacy Dedukti syntax)." src_extension legacy_src_extension
+       using the legacy Dedukti syntax)." File.src_extension File.legacy_src_extension
   in
   Arg.(required & pos 0 (some non_dir_file) None & info [] ~docv:"FILE" ~doc)
 
@@ -181,7 +181,7 @@ let files : string list Term.t =
   let doc =
     Printf.sprintf
       "Source file with the [%s] extension (or with the [%s] extension when \
-       using the legacy Dedukti syntax)." src_extension legacy_src_extension
+       using the legacy Dedukti syntax)." File.src_extension File.legacy_src_extension
   in
   Arg.(value & (pos_all non_dir_file []) & info [] ~docv:"FILE" ~doc)
 

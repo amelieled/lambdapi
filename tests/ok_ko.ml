@@ -12,7 +12,7 @@ let test_ko f () =
   Alcotest.(check bool) f r false
 
 let _ =
-  File_management.Files.set_lib_root None;
+  Tool.File.set_lib_root None;
   let open Alcotest in
   let files = Sys.readdir "OK" |> Array.map (fun f -> "OK/" ^ f)
 (* TODO put back OK/unif_hint.lp when it is fixed *)

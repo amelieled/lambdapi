@@ -1,6 +1,6 @@
 open Cmdliner
 open File_management.Error
-open File_management.Files
+open File_management.Module
 
 open Tool
    
@@ -87,7 +87,7 @@ let run : Path.t -> unit = fun root_path ->
     with_file (Filename.concat pkg_name "nat.lp") write_ex_nat;
     with_file (Filename.concat pkg_name "main.lp") (write_ex_main root_path)
   in
-  File_management.Error.handle_exceptions run
+  Compile.handle_exceptions run
 
 let root_path : Path.t Term.t =
   let doc =

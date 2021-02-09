@@ -3,7 +3,7 @@
 open Lplib
 open Lplib.Extra
 
-open File_management.Files
+open File_management.Module
 open File_management.Error
 
 (** A package configuration file is expected at the root of every package. The
@@ -94,4 +94,4 @@ let apply_config : file_path -> unit = fun fname ->
   | Some(cfg_file) ->
   let {package_name = _; root_path} = read cfg_file in
   let root = Filename.dirname cfg_file in
-  File_management.Files.new_lib_mapping (String.concat "." root_path ^ ":" ^ root)
+  File.new_lib_mapping (String.concat "." root_path ^ ":" ^ root)

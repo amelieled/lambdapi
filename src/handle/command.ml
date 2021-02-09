@@ -9,7 +9,7 @@ open! Data_structure
 open Data_structure.Terms
 open Data_structure.Sign
 open File_management.Pos
-open File_management.Files
+open File_management.Module
 open File_management.Type
 open Tags
    

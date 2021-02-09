@@ -13,14 +13,12 @@ open Lplib.Extra
 
 open Timed
    
-open! File_management
 open File_management.Error
-open Files
+open File_management.Module
 open File_management.Pos
 open File_management.Type
 open Tags
-   
-(*open Parsing.Syntax*)
+
 open Terms
 open Sign
 

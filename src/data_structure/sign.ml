@@ -7,7 +7,7 @@ open Lplib.Extra
    
 open Timed
 open File_management.Error
-open File_management.Files
+open File_management.Module
 open Terms
 (*open Parsing.Syntax*)
 open File_management.Pos
@@ -107,7 +107,7 @@ let path = Path.ghost "unif_rule"
 let ghost_sign : t =
   let dummy = dummy () in
   let s = {dummy with sign_path = path} in
-  loaded := File_management.Files.PathMap.add path s !loaded; s
+  loaded := File_management.Module.PathMap.add path s !loaded; s
 
 (** [create_sym e p name type blist] creates a new symbol
     with the exposition [e], the property [p], the name [name]
