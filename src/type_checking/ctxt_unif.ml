@@ -13,10 +13,10 @@ open Data_structure.Env
 let of_prod : ctxt -> int -> term -> env * term = fun c n t ->
   let rec build_env i env t =
     if i >= n then (env, t) else
-    match Eval.whnf c t with
+    match Rewriting_engine.Eval.whnf c t with
     | Prod(a,b) ->
         let (x, b) = Bindlib.unbind b in
-        build_env (i+1) (add x (lift (Eval.simplify [] a)) None env) b
+        build_env (i+1) (add x (lift (Rewriting_engine.Eval.simplify [] a)) None env) b
     | _         -> invalid_arg __LOC__
   in
   build_env 0 [] t
@@ -30,7 +30,7 @@ let of_prod_using : ctxt -> tvar array -> term -> env = fun c xs t ->
   let n = Array.length xs in
   let rec build_env i env t =
     if i >= n then env else
-    match Eval.whnf c t with
+    match Rewriting_engine.Eval.whnf c t with
     | Prod(a,b) -> let env = add xs.(i) (lift a) None env in
                    build_env (i+1) env (Bindlib.subst b (Vari(xs.(i))))
     | _         -> invalid_arg __LOC__

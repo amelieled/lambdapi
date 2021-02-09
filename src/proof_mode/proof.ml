@@ -44,12 +44,12 @@ module Goal = struct
   let env : goal -> Env.t = fun g ->
     match g with
     | Unif (c,_,_) ->
-        let t, n = Data_structure.Ctxt.to_prod c Type in fst (Ctxt_for_eval.of_prod c n t)
+        let t, n = Data_structure.Ctxt.to_prod c Type in fst (Ctxt_unif.of_prod c n t)
     | Typ gt -> gt.goal_hyps
 
   (** [of_meta m] creates a goal from the meta [m]. *)
   let of_meta : meta -> goal = fun m ->
-    let (goal_hyps, goal_type) = Ctxt_for_eval.of_prod [] m.meta_arity !(m.meta_type) in
+    let (goal_hyps, goal_type) = Ctxt_unif.of_prod [] m.meta_arity !(m.meta_type) in
     let goal_type = Eval.simplify (Env.to_ctxt goal_hyps) goal_type in
     Typ {goal_meta = m; goal_hyps; goal_type}
 

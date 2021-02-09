@@ -75,10 +75,6 @@ type ('term, 'binder) rw_patt_aux =
   | RW_IdInTerm       of 'binder
   | RW_TermInIdInTerm of 'term * 'binder
   | RW_TermAsIdInTerm of 'term * 'binder
-
-(* Then, p_rw_patt = (p_term, p_ident * p_term) rw_patt_aux loc
-and rw_patt = (term, tbinder) rw_patt_aux loc *)
-
                        
 (** Type representing the different evaluation strategies. *)
 type strategy =

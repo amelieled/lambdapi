@@ -20,7 +20,7 @@ let log_unif = log_unif.logger
 exception Unsolvable
 
 (** [try_unif_rules ctx s t] tries to solve unification problem [ctx ⊢ s ≡ t]
-   using declared unification rules. *)
+    using declared unification rules. *)
 let try_unif_rules : ctxt -> term -> term -> constr list option =
   fun ctx s t ->
   if !log_enabled then log_unif "check unif_rules for %a" pp_constr (ctx,s,t);
@@ -230,7 +230,7 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
         | Some vars -> vars
       in
       (* Build the environment (yk-1,ak-1{y0=v0,..,yk-2=vk-2});..;(y0,a0). *)
-      let env = Ctxt_for_eval.of_prod_using ctx vars !(m.meta_type) in
+      let env = Ctxt_unif.of_prod_using ctx vars !(m.meta_type) in
       (* Build the term s(m0[vs],..,mn-1[vs]). *)
       let k = Array.length vars in
       let t =
@@ -276,7 +276,7 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
   let imitate_lam m =
     if !log_enabled then log_unif "imitate_lam %a" pp_meta m;
     let n = m.meta_arity in
-    let (env, t) = Ctxt_for_eval.of_prod ctx n !(m.meta_type) in
+    let (env, t) = Ctxt_unif.of_prod ctx n !(m.meta_type) in
     let x,a,env',b,p =
       match Eval.whnf ctx t with
       | Prod(a,b) ->
@@ -402,7 +402,7 @@ and solve_aux : ctxt -> term -> term -> problem -> constr list =
   let imitate_prod m =
     if !log_enabled then log_unif "imitate_prod %a" pp_meta m;
     let n = m.meta_arity in
-    let (env, s) = Ctxt_for_eval.of_prod ctx n !(m.meta_type) in
+    let (env, s) = Ctxt_unif.of_prod ctx n !(m.meta_type) in
     let xs = Array.map _Vari (Env.vars env) in
 
     let t1 = Env.to_prod env _Type in
