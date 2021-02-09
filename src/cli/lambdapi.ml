@@ -11,6 +11,8 @@ open File_management.Type
 open Version
 open Data_structure
 
+open Scoping.Csig_state_find_sym
+   
 (* NOTE only standard [Stdlib] references here. *)
 
 (** {3 Evaluation of commands. *)
@@ -87,7 +89,7 @@ let decision_tree_cmd : Cliconf.t -> (p_module_path * string) -> unit =
     Cliconf.init cfg;
     let sym =
       let sign = Compile.compile false (List.map fst mp) in
-      let ss = Sig_state.of_sign sign in
+      let ss = Handle.Csig_state.of_sign sign in
       if String.contains sym '#' then
         (* If [sym] contains a hash, it’s a ghost symbol. *)
         try fst (StrMap.find sym Timed.(!(Sign.ghost_sign.sign_symbols)))
@@ -95,7 +97,7 @@ let decision_tree_cmd : Cliconf.t -> (p_module_path * string) -> unit =
           fatal_no_pos "Symbol \"%s\" not found in ghost modules." sym
       else
         try
-          Sig_state.find_sym ~prt:true ~prv:true false ss (File_management.Pos.none (mp, sym))
+          find_sym ~prt:true ~prv:true false ss (File_management.Pos.none (mp, sym))
         with Not_found ->
           fatal_no_pos "Symbol \"%s\" not found in module \"%a\"."
             sym Path.pp (List.map fst mp)

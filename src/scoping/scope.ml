@@ -14,6 +14,8 @@ open Data_structure.Terms
 open Data_structure.Env
 open Data_structure.Sig_state
 
+open Csig_state_find_sym
+
 (** Logging function for term scoping. *)
 let log_scop = new_logger 'o' "scop" "term scoping"
 let log_scop = log_scop.logger

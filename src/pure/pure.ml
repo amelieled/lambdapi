@@ -131,7 +131,7 @@ let initial_state : file_path -> state = fun fname ->
   Sign.loading := [mp];
   let sign = Sig_state.create_sign mp in
   Sign.loaded  := PathMap.add mp sign !Sign.loaded;
-  (Time.save (), Sig_state.of_sign sign)
+  (Time.save (), Csig_state.of_sign sign)
 
 let handle_command : state -> Command.t -> command_result =
     fun (st,ss) cmd ->

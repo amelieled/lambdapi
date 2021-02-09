@@ -21,6 +21,9 @@ open Rewriting_engine.Print
 
 open! Scoping
 
+open Csig_state
+open Csig_state_find_sym
+  
 (** Logging function for command handling. *)
 let log_hndl = new_logger 'h' "hndl" "command handling"
 let log_hndl = log_hndl.logger

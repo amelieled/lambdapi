@@ -2,17 +2,16 @@
 
 open! Lplib
 open Lplib.Extra
-
-(*open! Parsing*)
    
 open Timed
+   
 open File_management.Error
 open File_management.Module
-open Terms
-(*open Parsing.Syntax*)
 open File_management.Pos
 open File_management.Type
 open Tags
+
+open Terms
 
 (** Representation of an inductive type *)
 type inductive =

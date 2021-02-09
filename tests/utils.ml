@@ -5,6 +5,8 @@ open Lplib.Extra
 
 open Data_structure
 open Tool
+
+open Scoping.Csig_state_find_sym
    
 let _ =
   File.set_lib_root None;
@@ -17,7 +19,7 @@ let compile (fname: string): Sign.t =
 
 let bool_file = "OK/bool.lp"
 let bool_sign = compile bool_file
-let bool_ss = Sig_state.of_sign bool_sign
+let bool_ss = Handle.Csig_state.of_sign bool_sign
 
 (** HRS file generation. *)
 let test_hrs () =
@@ -39,7 +41,7 @@ let test_dtree () =
   match Parsing.Parser.parse_qident "tests.OK.bool.bool_or" with
   | Ok(e) ->
       let sym =
-        Sig_state.find_sym ~prt:true ~prv:true false bool_ss (File_management.Pos.none e)
+        find_sym ~prt:true ~prv:true false bool_ss (File_management.Pos.none e)
       in
       let buf = Buffer.create 16 in
       let fmt = Format.formatter_of_buffer buf in

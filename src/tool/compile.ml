@@ -85,7 +85,7 @@ let rec compile : bool -> Path.t -> Sign.t = fun force path ->
       out 2 "Loading %s%s ...\n%!" src forced;
       loading := path :: !loading;
       let sign = Data_structure.Sig_state.create_sign path in
-      let sig_st = Stdlib.ref (Data_structure.Sig_state.of_sign sign) in
+      let sig_st = Stdlib.ref (Csig_state.of_sign sign) in
       (* [sign] is added to [loaded] before processing the commands so that it
          is possible to qualify the symbols of the current modules. *)
       loaded := PathMap.add path sign !loaded;

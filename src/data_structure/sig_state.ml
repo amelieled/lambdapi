@@ -12,8 +12,7 @@
 open Lplib.Extra
 
 open Timed
-   
-open File_management.Error
+
 open File_management.Module
 open File_management.Pos
 open File_management.Type
@@ -33,6 +32,12 @@ type sig_state =
 
 type t = sig_state
 
+(** Dummy [sig_state] made from the dummy signature. *)
+let dummy : sig_state =
+  { signature = Sign.dummy (); in_scope = StrMap.empty; aliases = StrMap.empty
+  ; path_map = PathMap.empty; builtins = StrMap.empty
+  ; notations = SymMap.empty }
+  
 (** [create_sign path] creates a signature with path [path] with ghost modules
     as dependencies. *)
 let create_sign : Path.t -> Sign.t = fun sign_path ->
@@ -101,112 +106,3 @@ let add_builtin : sig_state -> string -> sym -> sig_state = fun ss name sym ->
 let add_quant : sig_state -> sym -> sig_state = fun ss sym ->
   Sign.add_quant ss.signature sym;
   {ss with notations = SymMap.add sym Quant ss.notations}
-
-(** [update_notations_from_builtins old_bm new_bm notations] generates a new
-    pp_hint map from [notations] when adding [new_bm] to the builtin map
-    [old_bm]. *)
-let update_notations_from_builtins
-    : sym StrMap.t -> sym StrMap.t -> notation SymMap.t -> notation SymMap.t =
-  fun old_bm new_bm notations ->
-  let add_hint name h notations =
-    try
-      let s_new = StrMap.find name new_bm in
-      try
-        let s_old = StrMap.find name old_bm in
-        SymMap.add s_new h (SymMap.remove s_old notations)
-      with Not_found -> SymMap.add s_new h notations
-    with Not_found -> notations
-  in
-  add_hint "0" Zero (add_hint "+1" Succ notations)
-
-(** [open_sign ss sign] extends the signature state [ss] with every symbol  of
-    the signature [sign].  This has the effect of putting these symbols in the
-    scope when (possibly masking symbols with the same name).  Builtin symbols
-    are also handled in a similar way. *)
-let open_sign : sig_state -> Sign.t -> sig_state = fun ss sign ->
-  let f _key _v1 v2 = Some(v2) in (* hides previous symbols *)
-  let in_scope = StrMap.union f ss.in_scope !(sign.sign_symbols) in
-  let builtins = StrMap.union f ss.builtins !(sign.sign_builtins) in
-  (* Bring operators in scope *)
-  let open_synt s syn ssis =
-    match syn with
-    | Sign.Infix (k,_, _, _) -> StrMap.add k (s, None) ssis
-    | Sign.Prefix (k,_,_) -> StrMap.add k (s, None) ssis
-    | _ -> ssis
-  in
-  let in_scope = SymMap.fold open_synt !(sign.sign_notations) in_scope in
-  let notations =
-    SymMap.fold SymMap.add !(sign.sign_notations) ss.notations
-  in
-  let notations =
-    update_notations_from_builtins ss.builtins !(sign.sign_builtins) notations
-  in
-  {ss with in_scope; builtins; notations}
-
-(** Dummy [sig_state] made from the dummy signature. *)
-let dummy : sig_state =
-  { signature = Sign.dummy (); in_scope = StrMap.empty; aliases = StrMap.empty
-  ; path_map = PathMap.empty; builtins = StrMap.empty
-  ; notations = SymMap.empty }
-
-(** [of_sign sign] creates a state from the signature [sign] with ghost
-    signatures opened. *)
-let of_sign : Sign.t -> sig_state = fun signature ->
-  open_sign {dummy with signature} Sign.ghost_sign
-
-(** [find_sym ~prt ~prv b st qid] returns the symbol
-    corresponding to the qualified identifier [qid]. If [fst qid.elt] is
-    empty, we search for the name [snd qid.elt] in the opened modules of [st].
-    The boolean [b] only indicates if the error message should mention
-    variables, in the case where the module path is empty and the symbol is
-    unbound. This is reported using the [Fatal] exception.
-    {!constructor:Terms.expo.Protec} symbols from other modules
-    are allowed in left-hand side of rewrite rules (only) iff [~prt] is true.
-    {!constructor:Terms.expo.Privat} symbols are allowed iff [~prv]
-    is [true]. *)
-let find_sym : prt:bool -> prv:bool -> bool -> sig_state -> qident -> sym =
-  fun ~prt ~prv b st qid ->
-  let {elt = (mp, s); pos} = qid in
-  let mp = List.map fst mp in
-  let s =
-    match mp with
-    | []                               -> (* Symbol in scope. *)
-        begin
-          try fst (StrMap.find s st.in_scope) with Not_found ->
-          let txt = if b then " or variable" else "" in
-          fatal pos "Unbound symbol%s [%s]." txt s
-        end
-    | [m] when StrMap.mem m st.aliases -> (* Aliased module path. *)
-        begin
-          (* The signature must be loaded (alias is mapped). *)
-          let sign =
-            try PathMap.find (StrMap.find m st.aliases) Timed.(!Sign.loaded)
-            with _ -> assert false (* Should not happen. *)
-          in
-          (* Look for the symbol. *)
-          try Sign.find sign s with Not_found ->
-          fatal pos "Unbound symbol [%a.%s]." Path.pp mp s
-        end
-    | _                                -> (* Fully-qualified symbol. *)
-        begin
-          (* Check that the signature was required (or is the current one). *)
-          if mp <> st.signature.sign_path then
-            if not (PathMap.mem mp !(st.signature.sign_deps)) then
-              fatal pos "No module [%a] required." Path.pp mp;
-          (* The signature must have been loaded. *)
-          let sign =
-            try PathMap.find mp Timed.(!Sign.loaded)
-            with Not_found -> assert false (* Should not happen. *)
-          in
-          (* Look for the symbol. *)
-          try Sign.find sign s with Not_found ->
-          fatal pos "Unbound symbol [%a.%s]." Path.pp mp s
-        end
-  in
-  match (prt, prv, s.sym_expo) with
-  | (false, _    , Protec) ->
-      if s.sym_path = st.signature.sign_path then s else
-      (* Fail if symbol is not defined in the current module. *)
-      fatal pos "Protected symbol not allowed here."
-  | (_    , false, Privat) -> fatal pos "Private symbol not allowed here."
-  | _                      -> s

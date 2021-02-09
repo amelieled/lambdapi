@@ -14,6 +14,8 @@ open! Lplib
 open Scoping
 open Data_structure
 
+open Csig_state_find_sym
+   
 (** Result of query displayed on hover in the editor*)
 type result = string option
 
@@ -86,7 +88,7 @@ let handle_query : Sig_state.t -> proof_state option -> p_query -> result =
        | Some ps -> out 1 "%a" Proof_mode.Proof.pp_goals ps;
                     Some (Format.asprintf "%a" Proof_mode.Proof.pp_goals ps))
   | P_query_print(Some qid) ->
-      let sym = Sig_state.find_sym ~prt:true ~prv:true false ss qid in
+      let sym = find_sym ~prt:true ~prv:true false ss qid in
       let open Timed in
       out 1 "(prnt) %a%a%asymbol %a: %a" pp_expo sym.sym_expo
         pp_prop sym.sym_prop pp_match_strat !(sym.sym_mstrat)
