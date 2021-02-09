@@ -182,12 +182,12 @@ let check_rule : pre_rule File_management.Pos.loc -> rule = fun ({pos; elt} as p
       log_subj "transformed RHS: %a" pp_term rhs_typing
     end;
   (* Infer the typing constraints of the LHS. *)
-  match Infer.infer_noexn [] [] lhs_typing with
+  match Type_checking.Infer.infer_noexn [] [] lhs_typing with
   | None -> fatal pos "The LHS is not typable."
   | Some(ty_lhs, to_solve) ->
   (* Try to simplify constraints. *)
   let type_check = false in (* Don't check typing when instantiating metas. *)
-  match Unif.(solve_noexn ~type_check {empty_problem with to_solve}) with
+  match Type_checking.Unif.(solve_noexn ~type_check {empty_problem with to_solve}) with
   | None -> fatal pos "The LHS is not typable."
   | Some lhs_constrs ->
   if !log_enabled then
@@ -232,7 +232,7 @@ let check_rule : pre_rule File_management.Pos.loc -> rule = fun ({pos; elt} as p
     Array.iter instantiate metas; Stdlib.(!symbols)
   in
   (* Compute the constraints for the RHS to have the same type as the LHS. *)
-  match Infer.check_noexn [] [] rhs_typing ty_lhs with
+  match Type_checking.Infer.check_noexn [] [] rhs_typing ty_lhs with
   | None -> fatal pos "[%a] is not typable." pp_term rhs_typing
   | Some to_solve ->
   if !log_enabled then
@@ -243,7 +243,7 @@ let check_rule : pre_rule File_management.Pos.loc -> rule = fun ({pos; elt} as p
   (* TODO we should complete the constraints into a set of rewriting rule on
      the function symbols of [symbols]. *)
   (* Solving the typing constraints of the RHS. *)
-  match Unif.(solve_noexn {empty_problem with to_solve}) with
+  match Type_checking.Unif.(solve_noexn {empty_problem with to_solve}) with
   | None     -> fatal pos "The rewriting rule does not preserve typing."
   | Some(cs) ->
   let is_constr c =
