@@ -8,6 +8,7 @@
     @see <https://rlepigre.github.io/ocaml-bindlib/> *)
 
 open Timed
+open File_management.Type
 
 (** {3 Term (and symbol) representation} *)
 
@@ -514,14 +515,8 @@ module SymMap = Map.Make(Sym)
     Reflection Extension for the Coq system", by Georges Gonthier,
     Assia Mahboubi and Enrico Tassi, INRIA Research Report 6455, 2016,
     @see <http://hal.inria.fr/inria-00258384>, section 8, p. 48. *)
-type rw_patt =
-  | RW_Term           of term
-  | RW_InTerm         of term
-  | RW_InIdInTerm     of (term, term) Bindlib.binder
-  | RW_IdInTerm       of (term, term) Bindlib.binder
-  | RW_TermInIdInTerm of term * (term, term) Bindlib.binder
-  | RW_TermAsIdInTerm of term * (term, term) Bindlib.binder
-
+type rw_patt = (term, (term, term) Bindlib.binder) rw_patt_aux
+               
 (** Representation of a rewriting rule prior to SR-checking. *)
 type pre_rule =
   { pr_sym      : sym

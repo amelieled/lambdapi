@@ -170,9 +170,9 @@ arg_list:
 
 // Patterns of the rewrite tactic
 rw_patt:
-  | t=term { make_pos $loc (Rw_Term(t)) }
-  | IN t=term { make_pos $loc (Rw_InTerm(t)) }
-  | IN x=ident IN t=term { make_pos $loc (Rw_InIdInTerm(fst x, t)) }
+  | t=term { make_pos $loc (RW_Term(t)) }
+  | IN t=term { make_pos $loc (RW_InTerm(t)) }
+  | IN x=ident IN t=term { make_pos $loc (RW_InIdInTerm(fst x, t)) }
   | u=term IN x=term t=preceded(IN, term)?
     {
       let ident_of_term {elt; _} =
@@ -181,11 +181,11 @@ rw_patt:
           | _ -> $syntaxerror
       in
       match t with
-      | Some(t) -> make_pos $loc (Rw_TermInIdInTerm(u, (ident_of_term x, t)))
-      | None -> make_pos $loc (Rw_IdInTerm(ident_of_term u, x))
+      | Some(t) -> make_pos $loc (RW_TermInIdInTerm(u, (ident_of_term x, t)))
+      | None -> make_pos $loc (RW_IdInTerm(ident_of_term u, x))
     }
   | u=term AS x=ident IN t=term
-      { make_pos $loc (Rw_TermAsIdInTerm(u, (fst x, t))) }
+      { make_pos $loc (RW_TermAsIdInTerm(u, (fst x, t))) }
 
 // Tactics available in proof mode.
 tactic:

@@ -625,22 +625,22 @@ let scope_pattern : sig_state -> env -> p_term -> term = fun ss env t ->
 let scope_rw_patt : sig_state ->  env -> p_rw_patt -> rw_patt =
   fun ss env s ->
   match s.elt with
-  | Rw_Term(t)               -> RW_Term(scope_pattern ss env t)
-  | Rw_InTerm(t)             -> RW_InTerm(scope_pattern ss env t)
-  | Rw_InIdInTerm(x,t)       ->
+  | RW_Term(t)               -> RW_Term(scope_pattern ss env t)
+  | RW_InTerm(t)             -> RW_InTerm(scope_pattern ss env t)
+  | RW_InIdInTerm(x,t)       ->
       let v = Bindlib.new_var mkfree x.elt in
       let t = scope_pattern ss ((x.elt,(v, _Kind, None))::env) t in
       RW_InIdInTerm(Bindlib.unbox (Bindlib.bind_var v (lift t)))
-  | Rw_IdInTerm(x,t)         ->
+  | RW_IdInTerm(x,t)         ->
       let v = Bindlib.new_var mkfree x.elt in
       let t = scope_pattern ss ((x.elt,(v, _Kind, None))::env) t in
       RW_IdInTerm(Bindlib.unbox (Bindlib.bind_var v (lift t)))
-  | Rw_TermInIdInTerm(u,(x,t)) ->
+  | RW_TermInIdInTerm(u,(x,t)) ->
       let u = scope_pattern ss env u in
       let v = Bindlib.new_var mkfree x.elt in
       let t = scope_pattern ss ((x.elt,(v, _Kind, None))::env) t in
       RW_TermInIdInTerm(u, Bindlib.unbox (Bindlib.bind_var v (lift t)))
-  | Rw_TermAsIdInTerm(u,(x,t)) ->
+  | RW_TermAsIdInTerm(u,(x,t)) ->
       let u = scope_pattern ss env u in
       let v = Bindlib.new_var mkfree x.elt in
       let t = scope_pattern ss ((x.elt,(v, _Kind, None))::env) t in

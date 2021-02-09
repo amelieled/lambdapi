@@ -69,12 +69,12 @@ module Tags = struct
 end
 
 type ('term, 'binder) rw_patt_aux =
-  | Rw_Term           of 'term
-  | Rw_InTerm         of 'term
-  | Rw_InIdInTerm     of 'binder
-  | Rw_IdInTerm       of 'binder
-  | Rw_TermInIdInTerm of 'term * 'binder
-  | Rw_TermAsIdInTerm of 'term * 'binder
+  | RW_Term           of 'term
+  | RW_InTerm         of 'term
+  | RW_InIdInTerm     of 'binder
+  | RW_IdInTerm       of 'binder
+  | RW_TermInIdInTerm of 'term * 'binder
+  | RW_TermAsIdInTerm of 'term * 'binder
 
 (* Then, p_rw_patt = (p_term, p_ident * p_term) rw_patt_aux loc
 and rw_patt = (term, tbinder) rw_patt_aux loc *)

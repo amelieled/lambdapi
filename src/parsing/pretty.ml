@@ -156,12 +156,12 @@ let proof_end : p_proof_end pp = fun ff {elt;_} ->
 let rw_patt : p_rw_patt pp = fun ff p ->
   let out fmt = Format.fprintf ff fmt in
   match p.elt with
-  | Rw_Term(t)                 -> out "%a" term t
-  | Rw_InTerm(t)               -> out "in %a" term t
-  | Rw_InIdInTerm(x,t)         -> out "in %a in %a" ident x term t
-  | Rw_IdInTerm(x,t)           -> out "%a in %a" ident x term t
-  | Rw_TermInIdInTerm(u,(x,t)) -> out "%a in %a in %a" term u ident x term t
-  | Rw_TermAsIdInTerm(u,(x,t)) -> out "%a as %a in %a" term u ident x term t
+  | RW_Term(t)                 -> out "%a" term t
+  | RW_InTerm(t)               -> out "in %a" term t
+  | RW_InIdInTerm(x,t)         -> out "in %a in %a" ident x term t
+  | RW_IdInTerm(x,t)           -> out "%a in %a" ident x term t
+  | RW_TermInIdInTerm(u,(x,t)) -> out "%a in %a in %a" term u ident x term t
+  | RW_TermAsIdInTerm(u,(x,t)) -> out "%a as %a in %a" term u ident x term t
 
 let assertion : p_assertion pp = fun ff asrt ->
   let out fmt = Format.fprintf ff fmt in
