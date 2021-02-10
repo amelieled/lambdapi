@@ -19,8 +19,9 @@ help:
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
+.PHONY: syntax.bnf
 syntax.bnf:
-	echo "<qid> ::= [<id>'.']*<id>\n" > $@
+	echo "<qid> ::= [<id>'.']+<id>\n" > $@
 	echo "<switch> ::= 'on'\n           | 'off'\n" >> $@
 	echo "<assoc> ::= 'left'\n          | 'right'\n" >> $@
 	$(BNF_GEN) ../src/core/lpParser.mly | sed \
@@ -104,5 +105,38 @@ syntax.bnf:
 	-e 's/<qid>_EXPL/"@"<qid>/g' \
 	-e "s/\"/\'/g" \
 	-e 's/<stringlit>/"<string>"/g' \
+	-e 's/| EOF//g' \
+	>> $@
+
+.PHONY: syntax_dedukti.bnf
+syntax_dedukti.bnf:
+	echo "<qid> ::= [<id>'.']+<id>\n" > $@
+	echo "<assert> ::= '#ASSERT'\n           | '#ASSERTNOT'\n" >> $@
+	$(BNF_GEN) ../src/core/dkParser.mly | sed \
+	-e 's/ASSERT/<assert>/g' \
+	-e 's/EVAL/"#EVAL"/g' \
+	-e 's/KW_DEF/"def"/g' \
+	-e 's/KW_INJ/"injective"/g' \
+	-e 's/KW_PRV/"private"/g' \
+	-e 's/KW_THM/"thm"/g' \
+	-e 's/INFER/"#INFER"/g' \
+	-e 's/REQUIRE/"#REQUIRE" <qid>/g' \
+	-e 's/TYPE/"Type"/g' \
+	-e 's/ARROW/"->"/g' \
+	-e 's/COLON/":"/g' \
+	-e 's/COMMA/","/g' \
+	-e 's/DEF/":="/g' \
+	-e 's/DOT/"."/g' \
+	-e 's/EQUAL/"=="/g' \
+	-e 's/FAT"->"/"=>"/g' \
+	-e 's/LONG"->"/"-->"/g' \
+	-e 's/LEFTPAR/"("/g' \
+	-e 's/LEFTSQU/"["/g' \
+	-e 's/RIGHTPAR/")"/g' \
+	-e 's/RIGHTSQU/"]"/g' \
+	-e 's/UNDERSCORE/"_"/g' \
+	-e 's/ID/<id>/g' \
+	-e 's/Q<id>/<qid>/g' \
+	-e "s/\"/\'/g" \
 	-e 's/| EOF//g' \
 	>> $@

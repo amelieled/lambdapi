@@ -1,7 +1,6 @@
 %{
 
 open! Lplib
-
 open Timed
 open Pos
 open Syntax
@@ -204,36 +203,49 @@ let build_config : Pos.pos -> string -> string option -> eval_config =
   with _ -> Console.fatal (Some(loc)) "Invalid command configuration."
 %}
 
+// end of file
+
 %token EOF
-%token DOT
-%token COMMA
-%token COLON
-%token EQUAL
-%token ARROW
-%token FARROW
-%token LARROW
-%token DEFEQ
-%token L_PAR
-%token R_PAR
-%token L_SQB
-%token R_SQB
-%token EVAL
-%token INFER
+
+// keywords in alphabetical order
+
 %token <bool> ASSERT
-%token WILD
-%token <Syntax.p_module_path> REQUIRE
-%token TYPE
+%token EVAL
 %token KW_DEF
 %token KW_INJ
 %token KW_PRV
 %token KW_THM
+%token INFER
+%token <Syntax.p_module_path> REQUIRE
+%token TYPE
+
+// symbols
+
+%token ARROW
+%token COLON
+%token COMMA
+%token DEF
+%token DOT
+%token EQUAL
+%token FATARROW
+%token LONGARROW
+%token LEFTPAR
+%token LEFTSQU
+%token RIGHTPAR
+%token RIGHTSQU
+%token UNDERSCORE
+
+// identifiers
+
 %token <string> ID
 %token <Syntax.p_module_path * string> QID
+
+// start symbol
 
 %start command
 %type <Syntax.p_command> command
 
-%right ARROW FARROW
+%right ARROW FATARROW
 
 %%
 
@@ -251,7 +263,7 @@ command:
       let p_sym_trm = None in
       let p_sym_prf = None in
       let p_sym_def = false in
-      make_pos $loc
+      make_pos $sloc
         (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
                    ;p_sym_def})
     }
@@ -263,11 +275,11 @@ command:
       let p_sym_trm = None in
       let p_sym_prf = None in
       let p_sym_def = false in
-      make_pos $loc
+      make_pos $sloc
         (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
                    ;p_sym_def})
     }
-  | p_sym_mod=modifier* KW_DEF s=ID COLON a=term DEFEQ t=term DOT
+  | p_sym_mod=modifier* KW_DEF s=ID COLON a=term DEF t=term DOT
     {
       let p_sym_nam = make_pos $loc(s) s in
       let p_sym_arg = [] in
@@ -275,11 +287,11 @@ command:
       let p_sym_trm = Some t in
       let p_sym_prf = None in
       let p_sym_def = true in
-      make_pos $loc
+      make_pos $sloc
         (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
                    ;p_sym_def})
     }
-  | p_sym_mod=modifier* KW_DEF s=ID DEFEQ t=term DOT
+  | p_sym_mod=modifier* KW_DEF s=ID DEF t=term DOT
     {
       let p_sym_nam = make_pos $loc(s) s in
       let p_sym_arg = [] in
@@ -287,34 +299,34 @@ command:
       let p_sym_trm = Some t in
       let p_sym_prf = None in
       let p_sym_def = true in
-      make_pos $loc
+      make_pos $sloc
         (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
                    ;p_sym_def})
     }
   | p_sym_mod=modifier* KW_DEF s=ID p_sym_arg=param+ COLON a=term
-    DEFEQ t=term DOT
+    DEF t=term DOT
     {
       let p_sym_nam = make_pos $loc(s) s in
       let p_sym_typ = Some a in
       let p_sym_trm = Some t in
       let p_sym_prf = None in
       let p_sym_def = true in
-      make_pos $loc
+      make_pos $sloc
         (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
                    ;p_sym_def})
     }
-  | p_sym_mod=modifier* KW_DEF s=ID p_sym_arg=param+ DEFEQ t=term DOT
+  | p_sym_mod=modifier* KW_DEF s=ID p_sym_arg=param+ DEF t=term DOT
     {
       let p_sym_nam = make_pos $loc(s) s in
       let p_sym_typ = None in
       let p_sym_trm = Some t in
       let p_sym_prf = None in
       let p_sym_def = true in
-      make_pos $loc
+      make_pos $sloc
         (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
                    ;p_sym_def})
     }
-  | p_sym_mod=modifier* KW_THM s=ID COLON a=term DEFEQ t=term DOT
+  | p_sym_mod=modifier* KW_THM s=ID COLON a=term DEF t=term DOT
     {
       let p_sym_nam = make_pos $loc(s) s in
       let p_sym_arg = [] in
@@ -322,87 +334,88 @@ command:
       let p_sym_trm = Some t in
       let p_sym_prf = None in
       let p_sym_def = true in
-      make_pos $loc
+      make_pos $sloc
         (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
                    ;p_sym_def})
     }
   | p_sym_mod=modifier* KW_THM s=ID p_sym_arg=param+ COLON a=term
-    DEFEQ t=term DOT
+    DEF t=term DOT
     {
       let p_sym_nam = make_pos $loc(s) s in
       let p_sym_typ = Some a in
       let p_sym_trm = Some t in
       let p_sym_prf = None in
       let p_sym_def = true in
-      make_pos $loc
+      make_pos $sloc
         (P_symbol {p_sym_mod;p_sym_nam;p_sym_arg;p_sym_typ;p_sym_trm;p_sym_prf
                    ;p_sym_def})
     }
   | rs=rule+ DOT {
-      make_pos $loc (P_rules(List.map translate_old_rule rs))
+      make_pos $sloc (P_rules(List.map translate_old_rule rs))
     }
   | EVAL t=term DOT {
       let c = {strategy = SNF; steps = None} in
-      let q = make_pos $loc (P_query_normalize(t,c)) in
-      make_pos $loc (P_query q)
+      let q = make_pos $sloc (P_query_normalize(t,c)) in
+      make_pos $sloc (P_query q)
     }
   | EVAL c=eval_config t=term DOT {
       let c = if c.strategy=NONE then {c with strategy=SNF} else c in
-      let q = make_pos $loc (P_query_normalize(t, c)) in
-      make_pos $loc (P_query q)
+      let q = make_pos $sloc (P_query_normalize(t, c)) in
+      make_pos $sloc (P_query q)
     }
   | INFER t=term DOT {
       let c = {strategy = NONE; steps = None} in
-      let q = make_pos $loc (P_query_infer(t, c)) in
-      make_pos $loc (P_query q)
+      let q = make_pos $sloc (P_query_infer(t, c)) in
+      make_pos $sloc (P_query q)
     }
   | INFER c=eval_config t=term DOT {
-      let q = make_pos $loc (P_query_infer(t, c)) in
-      make_pos $loc (P_query q)
+      let q = make_pos $sloc (P_query_infer(t, c)) in
+      make_pos $sloc (P_query q)
     }
   | mf=ASSERT t=aterm COLON a=term DOT {
-      let q = make_pos $loc (P_query_assert(mf, P_assert_typing(t,a))) in
-      make_pos $loc (P_query q)
+      let q = make_pos $sloc (P_query_assert(mf, P_assert_typing(t,a))) in
+      make_pos $sloc (P_query q)
     }
   | mf=ASSERT t=aterm EQUAL u=term DOT {
-      let q = make_pos $loc (P_query_assert(mf, P_assert_conv(t,u))) in
-      make_pos $loc (P_query q)
+      let q = make_pos $sloc (P_query_assert(mf, P_assert_conv(t,u))) in
+      make_pos $sloc (P_query q)
     }
-  | r=REQUIRE DOT { make_pos $loc (P_require(false,[r])) }
+  | r=REQUIRE DOT { make_pos $sloc (P_require(false,[r])) }
   | EOF {
       raise End_of_file
     }
 
 eval_config:
-  | L_SQB s=ID R_SQB              { build_config (locate $loc) s None       }
-  | L_SQB s1=ID COMMA s2=ID R_SQB { build_config (locate $loc) s1 (Some s2) }
+  | LEFTSQU s=ID RIGHTSQU
+    { build_config (locate $sloc) s None }
+  | LEFTSQU s1=ID COMMA s2=ID RIGHTSQU
+    { build_config (locate $sloc) s1 (Some s2) }
 
 param:
-  | L_PAR id=ID COLON te=term R_PAR {
-      ([Some (make_pos $loc(id) id)], Some(te), false)
-    }
+  | LEFTPAR id=ID COLON te=term RIGHTPAR
+    { ([Some (make_pos $loc(id) id)], Some(te), false) }
 
 modifier:
-  | KW_PRV { make_pos $loc (P_expo(Terms.Privat)) }
-  | KW_INJ { make_pos $loc (P_prop(Terms.Injec)) }
+  | KW_PRV { make_pos $sloc (P_expo(Terms.Privat)) }
+  | KW_INJ { make_pos $sloc (P_prop(Terms.Injec)) }
 
 context_item:
   | x=ID ao=option(COLON a=term { a }) { (make_pos $loc(x) x, ao) }
 
 rule:
-  | L_SQB c=separated_list(COMMA, context_item) R_SQB l=term LARROW r=term {
-      make_pos $loc (c, l, r)
-    }
+  | LEFTSQU c=separated_list(COMMA, context_item) RIGHTSQU
+    l=term LONGARROW r=term
+    { make_pos $sloc (c, l, r) }
 
 sterm:
-  | qid=QID { make_pos $loc (P_Iden(make_pos $loc qid, false)) }
-  | id=ID   { make_pos $loc (P_Iden(make_pos $loc ([], id), false)) }
-  | WILD    { make_pos $loc P_Wild }
-  | TYPE    { make_pos $loc P_Type }
-  | L_PAR t=term R_PAR { t }
+  | qid=QID { make_pos $sloc (P_Iden(make_pos $sloc qid, false)) }
+  | id=ID   { make_pos $sloc (P_Iden(make_pos $sloc ([], id), false)) }
+  | UNDERSCORE { make_pos $sloc P_Wild }
+  | TYPE    { make_pos $sloc P_Type }
+  | LEFTPAR t=term RIGHTPAR { t }
 
 aterm:
-  | t=aterm u=sterm { make_pos $loc (P_Appl(t,u)) }
+  | t=aterm u=sterm { make_pos $sloc (P_Appl(t,u)) }
   | t=sterm         { t }
 
 type_annot:
@@ -412,20 +425,20 @@ term:
   | t=aterm { t }
   | x=ID COLON a=aterm ARROW b=term {
       let x = make_pos $loc(x) x in
-      make_pos $loc (P_Prod([([Some x], Some(a), false)], b))
+      make_pos $sloc (P_Prod([([Some x], Some(a), false)], b))
     }
-  | L_PAR x=ID COLON a=aterm R_PAR ARROW b=term {
+  | LEFTPAR x=ID COLON a=aterm RIGHTPAR ARROW b=term {
       let x = make_pos $loc(x) x in
-      make_pos $loc (P_Prod([([Some x], Some(a), false)], b))
+      make_pos $sloc (P_Prod([([Some x], Some(a), false)], b))
     }
   | a=term ARROW b=term {
-      make_pos $loc (P_Impl(a, b))
+      make_pos $sloc (P_Impl(a, b))
     }
-  | WILD a=option(type_annot) FARROW t=term {
-      make_pos $loc (P_Abst([([None], a, false)], t))
+  | UNDERSCORE a=option(type_annot) FATARROW t=term {
+      make_pos $sloc (P_Abst([([None], a, false)], t))
     }
-  | x=ID a=option(type_annot) FARROW t=term {
+  | x=ID a=option(type_annot) FATARROW t=term {
       let x = make_pos $loc(x) x in
-      make_pos $loc (P_Abst([([Some x], a, false)], t))
+      make_pos $sloc (P_Abst([([Some x], a, false)], t))
     }
 %%
