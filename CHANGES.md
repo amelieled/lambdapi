@@ -1,5 +1,41 @@
 ### Unreleased
 
+#### File renamings and splitting and better handling of escaped identifier (2021-02-12)
+
+- File renamings and splittings:
+  * `lpLexer` -> `escape`, `lpLexer`
+  * `console` -> `base`, `extra`, `debug`, `error`, `console`
+  * `module` -> `filename`, `path`, `library`
+  * `cliconf` -> `config`
+  * `install_cmd` -> `install`
+  * `init_cmd` -> `init`
+
+- Improve handling of escaped identifiers in `escape.ml` and fix printing
+
+- Improve `tests/ok_ko.ml` to allow sub-directories in `tests/OK/` or `tests/KO/`
+
+#### File renamings and source code segmentation (2021-02-08)
+
+- File renamings:
+  * `terms` -> `term`
+  * `basics` -> `libTerm`
+  * `tactics` -> `tactic`
+  * `queries` -> `query`
+  * `stubs` -> `realpath`
+  * `files` -> `module`
+  * `handle` -> `command`
+
+- `Core` library divided into the following sub-libraries: 
+  * `Common` that contains shared basic files
+    (`pos`, `console`, `module` and `package`)
+  * `Parsing` that contains everything related to parsing
+    (`syntax`, `pretty`, lexers and parser)
+  * `Handle` that uses `Core` to type check commands and modules 
+    (contains `query`, `tactic`, `command`, `compile`, `inductive`, `rewrite`,
+    `proof` and `why3_tactic`)
+  * `Tool` that provides miscellaneous tools that use `Core`
+    (`external`, `hrs`, `xtc`, `tree_graphviz`, `sr`)
+
 #### Add parameters to inductive definitions (2021-02-02)
 
 #### Parser (2021-01-30)

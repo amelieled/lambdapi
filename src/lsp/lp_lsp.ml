@@ -12,6 +12,7 @@
 
 open! Lplib
 open Lplib.Extra
+open Common
 
 open Core
 
@@ -124,7 +125,7 @@ let mk_definfo file pos =
         ]
 
 let kind_of_type tm =
-  let open Terms in
+  let open Term in
   let open Timed in
   let is_undef =
     Option.empty !(tm.sym_def) && List.length !(tm.sym_rules) = 0 in
@@ -142,7 +143,7 @@ let do_symbols ofmt ~id params =
   let sym =
     Extra.StrMap.fold
       (fun _ (s,p) l ->
-        let open Terms in
+        let open Term in
         (* LIO.log_error "sym"
          ( s.sym_name ^ " | "
          ^ Format.asprintf "%a" pp_term !(s.sym_type)); *)
@@ -179,7 +180,7 @@ let get_node_at_pos doc line pos =
       let loc = Pure.Command.get_pos ast in
       let res = in_range ?loc (line,pos) in
       let ls = Format.asprintf "%B l:%d p:%d / %a "
-                 res line pos Pos.print loc in
+                 res line pos Pos.pp loc in
       LIO.log_error "get_node_at_pos" ("call: "^ls);
       res
     ) doc.Lp_doc.nodes
@@ -269,7 +270,7 @@ let do_definition ofmt ~id params =
     Extra.StrMap.bindings sym
     |> List.map (fun (key, (sym,pos)) ->
         Format.asprintf "{%s} / %s: @[%a@]"
-          key sym.Terms.sym_name Pos.print pos)
+          key sym.Term.sym_name Pos.pp pos)
     |> String.concat "\n"
   in
   LIO.log_error "symbol map" map_pp;
@@ -278,12 +279,11 @@ let do_definition ofmt ~id params =
     match StrMap.find_opt sym_target sym with
     | None
     | Some (_, None) -> `Null
-    | Some (term, Some pos) ->
+    | Some (s, Some pos) ->
       (* A JSON with the path towards the definition of the term
          and its position is returned
          /!\ : extension is fixed, only works for .lp files *)
-      mk_definfo Files.(module_to_file Terms.(term.sym_path)
-      ^ src_extension) pos
+      mk_definfo Library.(file_of_path s.Term.sym_path ^ src_extension) pos
   in
   let msg = LSP.mk_reply ~id ~result:sym_info in
   LIO.send_json ofmt msg
@@ -340,7 +340,7 @@ let hover_symInfo ofmt ~id params =
     Extra.StrMap.bindings sym
     |> List.map (fun (key, (sym,pos)) ->
         Format.asprintf "{%s} / %s: @[%a@]"
-          key sym.Terms.sym_name Pos.print pos)
+          key sym.Term.sym_name Pos.pp pos)
     |> String.concat "\n"
   in
   LIO.log_error "symbol map" map_pp;
@@ -348,7 +348,7 @@ let hover_symInfo ofmt ~id params =
   try
     let sym_found =
       let open Timed in
-      let open Terms in
+      let open Term in
       match StrMap.find_opt sym_target sym with
       | None
       | Some (_, None) ->
@@ -422,7 +422,7 @@ let dispatch_message ofmt dict =
 
   (* NOOPs *)
   | "initialized"
-  | "workspace/didChangeWatchedFiles" ->
+  | "workspace/didChangeWatchedModule" ->
     ()
   | msg ->
     LIO.log_error "no_handler" msg
@@ -451,7 +451,7 @@ let main std log_file =
   (* let lp_oc = open_out "log-lp.txt" in *)
   let lp_fmt = F.formatter_of_buffer Lp_doc.lp_logger in
   Console.out_fmt := lp_fmt;
-  Console.err_fmt := lp_fmt;
+  Error.err_fmt := lp_fmt;
   (* Console.verbose := 4; *)
 
   let rec loop () =

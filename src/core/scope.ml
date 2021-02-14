@@ -3,13 +3,15 @@
 open! Lplib
 open Lplib.Extra
 
-open Console
+open Common
+open Error
 open Pos
+open Parsing
 open Syntax
-open Terms
+open Term
 open Env
 open Sig_state
-open Rewrite
+open Debug
 
 (** Logging function for term scoping. *)
 let log_scop = new_logger 'o' "scop" "term scoping"
@@ -21,12 +23,13 @@ let log_scop = log_scop.logger
     first search for the name [snd qid.elt] in the environment, and if it is
     not mapped we also search in the opened modules. The exception [Fatal] is
     raised if an error occurs (e.g., when the name cannot be found). If [prt]
-    is true, {!constructor:Terms.expo.Protec} symbols from
+    is true, {!constructor:Term.expo.Protec} symbols from
     foreign modules are allowed (protected symbols from current modules are
     always allowed). If [prv] is true,
-    {!constructor:Terms.expo.Privat} symbols are allowed. *)
-let find_qid : bool -> bool -> sig_state -> env -> qident -> tbox =
+    {!constructor:Term.expo.Privat} symbols are allowed. *)
+let find_qid : bool -> bool -> sig_state -> env -> p_qident -> tbox =
   fun prt prv st env qid ->
+  if Timed.(!log_enabled) then log_scop "find_qid %a" Pretty.qident qid;
   let (mp, s) = qid.elt in
   (* Check for variables in the environment first. *)
   try
@@ -34,17 +37,16 @@ let find_qid : bool -> bool -> sig_state -> env -> qident -> tbox =
     _Vari (Env.find s env)
   with Not_found ->
     (* Check for symbols. *)
-    _Symb (find_sym ~prt ~prv true st qid)
+    _Symb (find_sym ~prt ~prv st qid)
 
 (** [get_root t ss] returns the symbol at the root of term [t]. *)
 let get_root : p_term -> sig_state -> Env.t -> sym = fun t ss env ->
   let rec get_root t =
     match t.elt with
-    | P_Iden(qid,_)         ->
-        find_sym ~prt:true ~prv:true true ss qid
-    | P_Appl(t, _)          -> get_root t
-    | P_Wrap(t)             -> get_root (Pratt.parse ss env t)
-    | _                     -> assert false
+    | P_Iden(qid,_) -> find_sym ~prt:true ~prv:true ss qid
+    | P_Appl(t, _)  -> get_root t
+    | P_Wrap(t)     -> get_root (Pratt.parse ss env t)
+    | _             -> assert false
   in
   (* Pratt parse to order terms correctly. *)
   get_root (Pratt.parse ss env t)
@@ -52,7 +54,7 @@ let get_root : p_term -> sig_state -> Env.t -> sym = fun t ss env ->
 (** Representation of the different scoping modes.  Note that the constructors
     hold specific information for the given mode. *)
 type mode =
-  | M_Term of meta StrMap.t Stdlib.ref * expo
+  | M_Term of meta StrMap.t Stdlib.ref * Tags.expo
   (** Standard scoping mode for terms, holding a map of metavariables that can
       be updated with new metavariables on scoping and the exposition of the
       scoped term. *)
@@ -60,7 +62,7 @@ type mode =
   (** Scoping mode for patterns in the rewrite tactic. *)
   | M_LHS  of
       { m_lhs_prv              : bool
-      (** True if {!constructor:Terms.expo.Privat} symbols are allowed. *)
+      (** True if {!constructor:Term.expo.Privat} symbols are allowed. *)
       ; m_lhs_indices          : (string, int   ) Hashtbl.t
       (** Stores index reserved for a pattern variable of the given name. *)
       ; m_lhs_arities          : (int   , int   ) Hashtbl.t
@@ -74,7 +76,7 @@ type mode =
   (** Scoping mode for rewriting rule left-hand sides. *)
   | M_RHS  of
       { m_rhs_prv             : bool
-      (** True if {!constructor:Terms.expo.Privat} symbols are allowed. *)
+      (** True if {!constructor:Term.expo.Privat} symbols are allowed. *)
       ; m_rhs_data            : (string, tevar) Hashtbl.t
       (** Environment for variables that we know to be bound in the RHS. *) }
   (** Scoping mode for rewriting rule right-hand sides. *)
@@ -224,21 +226,21 @@ let scope : mode -> sig_state -> env -> p_term -> tbox = fun md ss env t ->
     | ((Some({elt=P_Wild;_})|None), _           ) -> _Meta_Type env
     | (Some(a)   , _           ) -> scope env a
   (* Scoping function for binders (abstractions or produtcs). [scope_binder
-     cons env args_list t] scopes [t] in the environment [env] extended with
-     the parameters of [args_list]. For each parameter, a tbox is built using
-     [cons] (either _Abst or _Prod). *)
+     cons env params_list t] scopes [t] in the environment [env] extended with
+     the parameters of [params_list]. For each parameter, a tbox is built
+     using [cons] (either _Abst or _Prod). *)
   and scope_binder : (tbox -> tbinder Bindlib.box -> tbox)
-                     -> Env.t -> p_args list -> p_term option -> tbox =
-    fun cons env args_list t ->
-    let rec scope_args_list env args_list =
-      match args_list with
+                     -> Env.t -> p_params list -> p_term option -> tbox =
+    fun cons env params_list t ->
+    let rec scope_params_list env params_list =
+      match params_list with
       | [] -> (match t with Some t -> scope env t | None -> _Meta_Type env)
-      | (idopts,typopt,_implicit)::args_list ->
-          scope_args env idopts (scope_domain env typopt) args_list
-    and scope_args env idopts a args_list =
+      | (idopts,typopt,_implicit)::params_list ->
+          scope_params env idopts (scope_domain env typopt) params_list
+    and scope_params env idopts a params_list =
       let rec aux env idopts =
         match idopts with
-        | [] -> scope_args_list env args_list
+        | [] -> scope_params_list env params_list
         | None::idopts ->
             let v = Bindlib.new_var mkfree "_" in
             let t = aux env idopts in
@@ -252,7 +254,7 @@ let scope : mode -> sig_state -> env -> p_term -> tbox = fun md ss env t ->
             cons a (Bindlib.bind_var v t)
       in aux env idopts
     in
-    scope_args_list env args_list
+    scope_params_list env params_list
   (* Scoping function for head terms. *)
   and scope_head : env -> p_term -> tbox = fun env t ->
     match (t.elt, md) with
@@ -448,7 +450,7 @@ let scope : mode -> sig_state -> env -> p_term -> tbox = fun md ss env t ->
     state [ss] is used to handle module aliasing according to [find_qid]. If
     [?exp] is {!constructor:Public}, then the term mustn't contain any private
     subterms. *)
-let scope_term : expo -> sig_state -> env -> p_term -> term =
+let scope_term : Tags.expo -> sig_state -> env -> p_term -> term =
   fun expo ss env t ->
   let m = Stdlib.ref StrMap.empty in
   Bindlib.unbox (scope (M_Term(m, expo)) ss env t)
@@ -560,7 +562,7 @@ let scope_rule : bool -> sig_state -> p_rule -> pre_rule loc = fun ur ss r ->
   in
   (* Check the head symbol and build the actual LHS. *)
   let (sym, pr_lhs) =
-    let (h, args) = Basics.get_args pr_lhs in
+    let (h, args) = LibTerm.get_args pr_lhs in
     match h with
     | Symb(s) ->
         if is_constant s then
